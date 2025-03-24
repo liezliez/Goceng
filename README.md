@@ -1,2 +1,2 @@
 # Goceng
-Proyek akhir bootcamp
+Proyek akhir bootcamp BINAR Academy
