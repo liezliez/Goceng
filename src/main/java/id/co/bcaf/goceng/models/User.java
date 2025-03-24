@@ -15,7 +15,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private UUID id_user;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -23,13 +23,10 @@ public class User {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String nip;
-
     @Column(nullable = false)
     private String password;
 
     @ManyToOne
     @JoinColumn(name = "id_role", nullable = false)
-    private Role role;
+    private Role id_role;
 }
