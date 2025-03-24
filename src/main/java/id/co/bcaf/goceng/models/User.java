@@ -2,6 +2,7 @@ package id.co.bcaf.goceng.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.util.UUID;
 
 @Entity
@@ -28,5 +29,5 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "id_role", nullable = false)
-    private Role id_role;
+    private Role role;
 }

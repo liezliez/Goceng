@@ -2,7 +2,6 @@ package id.co.bcaf.goceng.models;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.UUID;
 
 @Entity
 @Table(name = "roles")
@@ -14,8 +13,8 @@ import java.util.UUID;
 public class Role {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID) // UUID as primary key
-    private UUID id_role;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id_role;
 
     @Column(nullable = false, unique = true, length = 50)
     private String role_name;
