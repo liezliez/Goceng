@@ -1,18 +1,20 @@
 package id.co.bcaf.goceng.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.UUID;
 
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
 public class Employee {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id_employee;
 
     @Column(nullable = false, unique = true)
@@ -22,6 +24,10 @@ public class Employee {
     private String branch;
     private String workStatus;
 
-    @Version  // Optimistic locking to prevent concurrent update issues
+    @Version
     private Long version;
+
+    @OneToOne
+    @JoinColumn(name = "id_user", nullable = false, unique = true)
+    private User user;
 }

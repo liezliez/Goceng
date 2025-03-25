@@ -1,6 +1,7 @@
 package id.co.bcaf.goceng.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.util.UUID;
@@ -30,4 +31,7 @@ public class User {
     @ManyToOne
     @JoinColumn(name = "id_role", nullable = false)
     private Role role;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Employee employee;
 }
