@@ -21,24 +21,25 @@ public class AuthService {
     private JwtUtil jwtUtil;
 
     public String authenticateUser(String email, String password) {
-        logger.info("Mencoba login dengan email: {}", email);  // Cek apakah email diterima
+        logger.info("Login with email: {}", email);  // Cek apakah email diterima
 
         Optional<User> userOptional = usersRepository.findByEmail(email);
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-            logger.info("User ditemukan: {}", user.getEmail()); // Konfirmasi user ditemukan di database
+            logger.info("User Found: {}", user.getEmail()); // Konfirmasi user ditemukan di database
+
             // Langsung bandingkan dengan password di database (karena belum di-hash)
             if (user.getPassword().equals(password)) {
-                logger.info("Password cocok, menghasilkan token...");
+                logger.info("Password Match, generate token...");
                 return jwtUtil.generateToken(email); // Kembalikan JWT Token
             }
             else {
-                logger.warn("Password tidak cocok untuk email: {}", email);
+                logger.warn("Password didn't match: {}", email);
             }
         }
         else {
-            logger.warn("User dengan email {} tidak ditemukan di database", email);
+            logger.warn("User with email {} not found in database", email);
         }
         return null; // Jika gagal login
     }

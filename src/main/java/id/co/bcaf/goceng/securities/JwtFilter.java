@@ -17,6 +17,7 @@ import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 @Component
 public class JwtFilter extends GenericFilterBean {
@@ -36,24 +37,29 @@ public class JwtFilter extends GenericFilterBean {
         String authHeader = httpRequest.getHeader("Authorization");
         String requestURI = httpRequest.getRequestURI();
 
-        // Log untuk debugging
         System.out.println("Incoming Request URI: " + requestURI);
         System.out.println("Raw Authorization Header: [" + authHeader + "]");
 
-        // Bypass filter untuk endpoint yang tidak membutuhkan autentikasi
-        if (requestURI.startsWith("/auth/login")) {
+        // List of public endpoints that do NOT require a token
+        List<String> publicEndpoints = List.of(
+                "/api/v1/auth/login",
+                "/api/v1/auth/register",
+                "/users"  // Allowing /users to be accessed without authentication
+        );
+
+        // If the request is for a public endpoint, allow it without authentication
+        if (publicEndpoints.contains(requestURI)) {
             chain.doFilter(request, response);
             return;
         }
 
-        // Validasi Authorization Header
+        // Validate the token
         if (authHeader == null || !authHeader.toLowerCase().startsWith("bearer ")) {
             System.out.println("Authorization header missing or invalid.");
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid token");
             return;
         }
 
-        // Ambil token setelah "Bearer " dan hapus spasi ekstra
         String token = authHeader.replaceFirst("(?i)^Bearer\\s+", "").trim();
         System.out.println("Processed Token jwt Filter: [" + token + "]");
 
@@ -67,7 +73,6 @@ public class JwtFilter extends GenericFilterBean {
                 return;
             }
 
-            // Set user ke SecurityContext agar tidak mendapat error 403
             UserDetails userDetails = new User(email, "", Collections.emptyList());
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

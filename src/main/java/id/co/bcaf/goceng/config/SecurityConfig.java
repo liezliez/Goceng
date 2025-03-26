@@ -1,6 +1,6 @@
-package id.co.bcaf.goceng.securities;
+package id.co.bcaf.goceng.config;
 
-import id.co.bcaf.goceng.utils.JwtUtil;
+import id.co.bcaf.goceng.securities.JwtFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,9 +23,12 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/login").permitAll() // Buka akses login
-
-                        .anyRequest().authenticated()  // Endpoint lain harus pakai token
+                        .requestMatchers(
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/users"
+                        ).permitAll() // Allow access to login, register, and users endpoints
+                        .anyRequest().authenticated()  // Other endpoints require authentication
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

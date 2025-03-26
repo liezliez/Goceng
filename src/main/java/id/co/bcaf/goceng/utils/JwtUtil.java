@@ -3,23 +3,24 @@ package id.co.bcaf.goceng.utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import org.springframework.security.core.userdetails.UserDetails;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
 
 @Component
 public class JwtUtil {
 
-    private static final String SECRET_KEY = "your_secret_key";
+    private final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256); // Secure Key Generation
 
     public String generateToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .signWith(SECRET_KEY) // Use Secure Key
                 .compact();
     }
 
@@ -28,8 +29,13 @@ public class JwtUtil {
     }
 
     public boolean validateToken(String token, String email) {
-        String extractedEmail = extractEmail(token);
-        return extractedEmail != null && extractedEmail.equals(email);
+        try {
+            String extractedEmail = extractEmail(token);
+            return extractedEmail != null && extractedEmail.equals(email) && !isTokenExpired(token);
+        } catch (Exception e) {
+            System.out.println("Token validation failed: " + e.getMessage());
+            return false;
+        }
     }
 
     public boolean isTokenExpired(String token) {
@@ -41,8 +47,9 @@ public class JwtUtil {
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        Claims claims = Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(SECRET_KEY)  // Use secure key
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
         return claimsResolver.apply(claims);
