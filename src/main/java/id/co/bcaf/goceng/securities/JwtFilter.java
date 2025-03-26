@@ -17,7 +17,6 @@ import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 
 @Component
 public class JwtFilter extends GenericFilterBean {
@@ -37,50 +36,51 @@ public class JwtFilter extends GenericFilterBean {
         String authHeader = httpRequest.getHeader("Authorization");
         String requestURI = httpRequest.getRequestURI();
 
-        System.out.println("Incoming Request URI: " + requestURI);
-        System.out.println("Raw Authorization Header: [" + authHeader + "]");
+        // ✅ Log Incoming Request
+        System.out.println("🔹 Incoming Request URI: " + requestURI);
+        System.out.println("🔹 Raw Authorization Header: " + authHeader);
 
-        // List of public endpoints that do NOT require a token
-        List<String> publicEndpoints = List.of(
-                "/api/v1/auth/login",
-                "/api/v1/auth/register",
-                "/users"  // Allowing /users to be accessed without authentication
-        );
-
-        // If the request is for a public endpoint, allow it without authentication
-        if (publicEndpoints.contains(requestURI)) {
+        // ✅ Allow public endpoints without JWT
+        if (requestURI.equals("/api/v1/auth/login") ||
+                requestURI.equals("/api/v1/auth/register") ||
+                requestURI.matches("^/users(/[^/]+)?$")) {  // Matches "/users" and "/users/{id}"
+            System.out.println("✅ Public endpoint accessed: " + requestURI);
             chain.doFilter(request, response);
             return;
         }
 
-        // Validate the token
+        // ✅ Check if Authorization header is missing or invalid
         if (authHeader == null || !authHeader.toLowerCase().startsWith("bearer ")) {
-            System.out.println("Authorization header missing or invalid.");
+            System.out.println("⛔ Authorization header missing or invalid.");
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid token");
             return;
         }
 
+        // ✅ Extract token by removing "Bearer " prefix (case-insensitive)
         String token = authHeader.replaceFirst("(?i)^Bearer\\s+", "").trim();
-        System.out.println("Processed Token jwt Filter: [" + token + "]");
+        System.out.println("🔹 Processed Token: " + token);
 
         try {
+            // ✅ Extract email from token
             String email = jwtUtil.extractEmail(token);
-            System.out.println("Extracted Email from Token: " + email);
+            System.out.println("🔹 Extracted Email from Token: " + email);
 
+            // ✅ Validate token
             if (email == null || !jwtUtil.validateToken(token, email)) {
-                System.out.println("Token validation failed.");
+                System.out.println("⛔ Token validation failed.");
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;
             }
 
+            // ✅ Authenticate user
             UserDetails userDetails = new User(email, "", Collections.emptyList());
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            System.out.println("User authenticated successfully: " + email);
+            System.out.println("✅ User authenticated successfully: " + email);
         } catch (Exception e) {
-            System.out.println("Error processing token: " + e.getMessage());
+            System.out.println("⛔ Error processing token: " + e.getMessage());
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token format");
             return;
         }

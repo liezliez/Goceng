@@ -1,65 +1,92 @@
 package id.co.bcaf.goceng.controllers;
 
-import id.co.bcaf.goceng.dto.ApiResponse;
+import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.services.UserService;
-import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
-@CrossOrigin(origins = "*")  // Allow cross-origin requests (optional)
+@Slf4j
 public class UserController {
 
     @Autowired
     private UserService userService;
 
-    // Create a new user
-    @PostMapping
-    public ResponseEntity<ApiResponse<User>> createUser(@Valid @RequestBody User user) {
-        User savedUser = userService.createUser(user);
-        return ResponseEntity.ok(new ApiResponse<>(true, "User created successfully", savedUser));
-    }
-
-    // Get all users
     @GetMapping
-    public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Users retrieved successfully", users));
+    public ResponseEntity<List<User>> getAllUsers() {
+        log.info("Fetching all users");
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // Get user by ID
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable UUID id) {
-        Optional<User> user = userService.getUserById(id);
-        return user.map(value -> ResponseEntity.ok(new ApiResponse<>(true, "User found", value)))
-                .orElseGet(() -> ResponseEntity.status(404).body(new ApiResponse<>(false, "User not found", null)));
-    }
-
-    // Update user
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Optional<User>>> updateUser(@PathVariable UUID id, @Valid @RequestBody User updatedUser) {
+    public ResponseEntity<User> getUserById(@PathVariable UUID id) {
+        log.info("Fetching user with ID: {}", id);
         return userService.getUserById(id)
-                .map(existingUser -> {
-                    Optional<User> user = userService.updateUser(id, updatedUser);
-                    return ResponseEntity.ok(new ApiResponse<>(true, "User updated successfully", user));
-                })
-                .orElseGet(() -> ResponseEntity.status(404).body(new ApiResponse<>(false, "User not found", null)));
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> {
+                    log.warn("User with ID {} not found", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
-    // Delete user
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable UUID id) {
-        if (userService.getUserById(id).isPresent()) {
-            userService.deleteUser(id);
-            return ResponseEntity.ok(new ApiResponse<>(true, "User deleted successfully", null));
+    // ✅ Fetch users by status (ACTIVE, BANNED, DELETED)
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<User>> getUsersByStatus(@PathVariable String status) {
+        try {
+            AccountStatus accountStatus = AccountStatus.valueOf(status.toUpperCase());
+            log.info("Fetching users with status: {}", accountStatus);
+            return ResponseEntity.ok(userService.getUsersByStatus(accountStatus));
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid account status: {}", status);
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.status(404).body(new ApiResponse<>(false, "User not found", null));
+    }
+
+    @PostMapping
+    public ResponseEntity<User> createUser(@RequestBody User user) {
+        log.info("Creating new user: {}", user.getEmail());
+        return ResponseEntity.ok(userService.createUser(user));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody User user) {
+        log.info("Updating user with ID: {}", id);
+        return userService.updateUser(id, user)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> {
+                    log.warn("User with ID {} not found for update", id);
+                    return ResponseEntity.notFound().build();
+                });
+    }
+
+    // ✅ Soft delete user (change account_status to DELETED)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteUser(@PathVariable UUID id) {
+        log.info("Deleting user with ID: {}", id);
+        boolean deleted = userService.deleteUser(id);
+        if (deleted) {
+            return ResponseEntity.ok("User status changed to DELETED");
+        }
+        log.warn("User with ID {} not found for deletion", id);
+        return ResponseEntity.notFound().build();
+    }
+
+    // ✅ Restore user from DELETED to ACTIVE
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
+        log.info("Restoring user with ID: {}", id);
+        boolean restored = userService.restoreUser(id);
+        if (restored) {
+            return ResponseEntity.ok("User restored to ACTIVE");
+        }
+        log.warn("User with ID {} not found or not in DELETED status", id);
+        return ResponseEntity.badRequest().body("User is not in DELETED status or does not exist.");
     }
 }

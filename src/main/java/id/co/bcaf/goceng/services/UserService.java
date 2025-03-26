@@ -1,19 +1,13 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +25,10 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public List<User> getUsersByStatus(AccountStatus status) {
+        return userRepository.findByAccountStatus(status); // ✅ Updated to match field name
+    }
+
     public Optional<User> getUserById(UUID id) {
         return userRepository.findById(id);
     }
@@ -39,6 +37,7 @@ public class UserService {
         Integer roleId = user.getRole().getId_role();
         Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found"));
         user.setRole(role);
+        user.setAccountStatus(AccountStatus.ACTIVE); // ✅ Updated field
         return userRepository.save(user);
     }
 
@@ -50,14 +49,29 @@ public class UserService {
             user.setEmail(userDetails.getEmail());
             user.setName(userDetails.getName());
             user.setPassword(userDetails.getPassword());
+            user.setAccountStatus(userDetails.getAccountStatus()); // ✅ Updated field
             return userRepository.save(user);
         });
     }
 
+    // ✅ Soft Delete: Change account_status to DELETED instead of removing user from DB
     public boolean deleteUser(UUID id) {
         return userRepository.findById(id).map(user -> {
-            userRepository.delete(user);
+            user.setAccountStatus(AccountStatus.DELETED); // ✅ Updated field
+            userRepository.save(user);
             return true;
+        }).orElse(false);
+    }
+
+    // ✅ Restore User: Change account_status from DELETED to ACTIVE
+    public boolean restoreUser(UUID id) {
+        return userRepository.findById(id).map(user -> {
+            if (user.getAccountStatus() == AccountStatus.DELETED) { // ✅ Updated field
+                user.setAccountStatus(AccountStatus.ACTIVE);
+                userRepository.save(user);
+                return true;
+            }
+            return false;
         }).orElse(false);
     }
 }

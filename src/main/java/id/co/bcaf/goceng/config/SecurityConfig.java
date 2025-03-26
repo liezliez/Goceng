@@ -26,7 +26,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
-                                "/users"
+                                "/users/**"
                         ).permitAll() // Allow access to login, register, and users endpoints
                         .anyRequest().authenticated()  // Other endpoints require authentication
                 )
