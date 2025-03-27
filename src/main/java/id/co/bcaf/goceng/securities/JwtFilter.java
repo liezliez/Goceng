@@ -42,12 +42,13 @@ public class JwtFilter extends GenericFilterBean {
 
         // ✅ Allow public endpoints without JWT
         if (requestURI.equals("/api/v1/auth/login") ||
-                requestURI.equals("/api/v1/auth/register") ||
+                requestURI.equals("/api/v1/auth/register")
+                ||
                 requestURI.matches("^/users(/[^/]+)?$")) {  // Matches "/users" and "/users/{id}"
-            System.out.println("✅ Public endpoint accessed: " + requestURI);
-            chain.doFilter(request, response);
-            return;
-        }
+                    System.out.println("✅ Public endpoint accessed: " + requestURI);
+                    chain.doFilter(request, response);
+                    return;
+                }
 
         // ✅ Check if Authorization header is missing or invalid
         if (authHeader == null || !authHeader.toLowerCase().startsWith("bearer ")) {

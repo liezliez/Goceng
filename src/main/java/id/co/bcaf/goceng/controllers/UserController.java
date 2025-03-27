@@ -36,7 +36,7 @@ public class UserController {
                 });
     }
 
-    // ✅ Fetch users by status (ACTIVE, BANNED, DELETED)
+    // # Fetch users by status (ACTIVE, BANNED, DELETED)
     @GetMapping("/status/{status}")
     public ResponseEntity<List<User>> getUsersByStatus(@PathVariable String status) {
         try {
@@ -66,7 +66,7 @@ public class UserController {
                 });
     }
 
-    // ✅ Soft delete user (change account_status to DELETED)
+    // # Soft delete user (not actually deleted the user, but just change account_status to DELETED)
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable UUID id) {
         log.info("Deleting user with ID: {}", id);
@@ -78,7 +78,7 @@ public class UserController {
         return ResponseEntity.notFound().build();
     }
 
-    // ✅ Restore user from DELETED to ACTIVE
+    // # Restore user from DELETED to ACTIVE
     @PutMapping("/{id}/restore")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
         log.info("Restoring user with ID: {}", id);

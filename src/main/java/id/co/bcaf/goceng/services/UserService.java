@@ -26,7 +26,7 @@ public class UserService {
     }
 
     public List<User> getUsersByStatus(AccountStatus status) {
-        return userRepository.findByAccountStatus(status); // ✅ Updated to match field name
+        return userRepository.findByAccountStatus(status);
     }
 
     public Optional<User> getUserById(UUID id) {
@@ -37,7 +37,7 @@ public class UserService {
         Integer roleId = user.getRole().getId_role();
         Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found"));
         user.setRole(role);
-        user.setAccountStatus(AccountStatus.ACTIVE); // ✅ Updated field
+        user.setAccountStatus(AccountStatus.ACTIVE);
         return userRepository.save(user);
     }
 
@@ -49,24 +49,24 @@ public class UserService {
             user.setEmail(userDetails.getEmail());
             user.setName(userDetails.getName());
             user.setPassword(userDetails.getPassword());
-            user.setAccountStatus(userDetails.getAccountStatus()); // ✅ Updated field
+            user.setAccountStatus(userDetails.getAccountStatus()); 
             return userRepository.save(user);
         });
     }
 
-    // ✅ Soft Delete: Change account_status to DELETED instead of removing user from DB
+    // # Soft Delete: Change account_status to DELETED instead of removing user from DB
     public boolean deleteUser(UUID id) {
         return userRepository.findById(id).map(user -> {
-            user.setAccountStatus(AccountStatus.DELETED); // ✅ Updated field
+            user.setAccountStatus(AccountStatus.DELETED); 
             userRepository.save(user);
             return true;
         }).orElse(false);
     }
 
-    // ✅ Restore User: Change account_status from DELETED to ACTIVE
+    // # Restore User: Change account_status from DELETED to ACTIVE
     public boolean restoreUser(UUID id) {
         return userRepository.findById(id).map(user -> {
-            if (user.getAccountStatus() == AccountStatus.DELETED) { // ✅ Updated field
+            if (user.getAccountStatus() == AccountStatus.DELETED) { 
                 user.setAccountStatus(AccountStatus.ACTIVE);
                 userRepository.save(user);
                 return true;
