@@ -11,7 +11,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableWebSecurity
+//@EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
@@ -23,17 +23,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable()) // ❌ Disable CSRF only for APIs
                 .authorizeHttpRequests(auth -> auth
                         // 🔓 Publicly accessible endpoints
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register"
-
                         ).permitAll()
 
-                        // 🔒 Restrict access based on roles
-                        .requestMatchers("/users/**").hasAnyRole("SUPERADMIN", "BACK_OFFICE") // Adjust roles as needed
+                        .requestMatchers("/features", "/users").permitAll() // 🛑 Is this correct? Remove if not intended.
+
+                        // 🔒 Role-based access control (use hasAuthority if roles are stored without "ROLE_")
+                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
                         .requestMatchers("/branch/**").hasRole("BRANCH_MANAGER")
                         .requestMatchers("/marketing/**").hasRole("MARKETING")
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")

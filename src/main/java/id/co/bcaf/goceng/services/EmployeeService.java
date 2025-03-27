@@ -1,7 +1,9 @@
 package id.co.bcaf.goceng.services;
 
 import id.co.bcaf.goceng.models.Employee;
+import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
+import id.co.bcaf.goceng.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,9 +18,24 @@ public class EmployeeService {
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    // ✅ Create Employee
+    @Autowired
+    private UserRepository userRepository;
+
+    // ✅ Create Employee using id_user
     @Transactional
-    public Employee createEmployee(Employee employee) {
+    public Employee createEmployee(UUID id_user) {
+        // 🔹 Fetch user details using id_user
+        User user = userRepository.findById(id_user)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 🔹 Create Employee with user details
+        Employee employee = new Employee();
+        employee.setUser(user);
+        employee.setName(user.getName());
+        employee.setBranch("Default Branch");  // Set branch manually if needed
+        employee.setWorkStatus("ACTIVE");      // Default status
+        employee.setNIP(generateRandomNIP());  // Generate unique NIP
+
         return employeeRepository.save(employee);
     }
 
@@ -32,15 +49,13 @@ public class EmployeeService {
         return employeeRepository.findById(id_employee);
     }
 
-    // ✅ Update employee (Optimistic Locking Applied)
+    // ✅ Update employee (Only updates fields, not user details)
     @Transactional
     public Optional<Employee> updateEmployee(UUID id_employee, Employee employeeDetails) {
         return employeeRepository.findByIdWithLock(id_employee).map(existingEmployee -> {
-            existingEmployee.setNIP(employeeDetails.getNIP());
-            existingEmployee.setName(employeeDetails.getName());
             existingEmployee.setBranch(employeeDetails.getBranch());
             existingEmployee.setWorkStatus(employeeDetails.getWorkStatus());
-            return employeeRepository.save(existingEmployee);  // ✅ Save only after updating fields
+            return employeeRepository.save(existingEmployee);
         });
     }
 
@@ -52,5 +67,10 @@ public class EmployeeService {
             return true;
         }
         return false;
+    }
+
+    // ✅ Helper function to generate unique NIP
+    private String generateRandomNIP() {
+        return "NIP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 }

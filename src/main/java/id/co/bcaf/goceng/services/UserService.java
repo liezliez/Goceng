@@ -5,7 +5,7 @@ import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,11 +15,15 @@ import java.util.UUID;
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private RoleRepository roleRepository;
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -33,40 +37,61 @@ public class UserService {
         return userRepository.findById(id);
     }
 
+    // ✅ NEW: Get user by email
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public User registerUser(User user) {
+        Role defaultRole = roleRepository.findById(2)
+                .orElseThrow(() -> new RuntimeException("Default role CUSTOMER not found"));
+        user.setRole(defaultRole);
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return userRepository.save(user);
+    }
+
     public User createUser(User user) {
-        Integer roleId = user.getRole().getId_role();
-        Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found"));
+        Role role = roleRepository.findById(user.getRole().getId_role())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
         user.setRole(role);
         user.setAccountStatus(AccountStatus.ACTIVE);
+        return saveUser(user);
+    }
+
+    private User saveUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
     public Optional<User> updateUser(UUID id, User userDetails) {
         return userRepository.findById(id).map(user -> {
-            Integer roleId = userDetails.getRole().getId_role();
-            Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found"));
-            user.setRole(role);
+            if (userDetails.getRole() != null) {
+                Role role = roleRepository.findById(userDetails.getRole().getId_role())
+                        .orElseThrow(() -> new RuntimeException("Role not found"));
+                user.setRole(role);
+            }
             user.setEmail(userDetails.getEmail());
             user.setName(userDetails.getName());
-            user.setPassword(userDetails.getPassword());
-            user.setAccountStatus(userDetails.getAccountStatus()); 
+            if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+            }
+            user.setAccountStatus(userDetails.getAccountStatus());
             return userRepository.save(user);
         });
     }
 
-    // # Soft Delete: Change account_status to DELETED instead of removing user from DB
     public boolean deleteUser(UUID id) {
         return userRepository.findById(id).map(user -> {
-            user.setAccountStatus(AccountStatus.DELETED); 
+            user.setAccountStatus(AccountStatus.DELETED);
             userRepository.save(user);
             return true;
         }).orElse(false);
     }
 
-    // # Restore User: Change account_status from DELETED to ACTIVE
     public boolean restoreUser(UUID id) {
         return userRepository.findById(id).map(user -> {
-            if (user.getAccountStatus() == AccountStatus.DELETED) { 
+            if (user.getAccountStatus() == AccountStatus.DELETED) {
                 user.setAccountStatus(AccountStatus.ACTIVE);
                 userRepository.save(user);
                 return true;
