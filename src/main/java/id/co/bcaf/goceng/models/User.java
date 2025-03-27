@@ -1,7 +1,7 @@
 package id.co.bcaf.goceng.models;
 
+import id.co.bcaf.goceng.enums.AccountStatus;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.util.UUID;
@@ -27,6 +27,10 @@ public class User {
 
     @Column(nullable = false)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false) // ✅ Ensures correct column mapping
+    private AccountStatus accountStatus;
 
     @ManyToOne
     @JoinColumn(name = "id_role", nullable = false)

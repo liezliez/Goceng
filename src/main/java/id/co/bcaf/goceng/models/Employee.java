@@ -6,6 +6,7 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
+@Table(name = "employees")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,9 +24,6 @@ public class Employee {
     private String name;
     private String branch;
     private String workStatus;
-
-    @Version
-    private Long version;
 
     @OneToOne
     @JoinColumn(name = "id_user", nullable = false, unique = true)
