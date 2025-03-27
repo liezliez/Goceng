@@ -3,6 +3,7 @@ package id.co.bcaf.goceng.config;
 import id.co.bcaf.goceng.securities.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -11,6 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
 
@@ -27,11 +29,14 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register"
+
                         ).permitAll()
 
-                        // WORK-IN-PROGRESS, still haven't implemented the hasROLE yet
-                        // 🔒 Restrict access to user-related endpoints
-                        .requestMatchers("/users/**").hasRole("ADMIN") // Only admins can manage users
+                        // 🔒 Restrict access based on roles
+                        .requestMatchers("/users/**").hasAnyRole("SUPERADMIN", "BACK_OFFICE") // Adjust roles as needed
+                        .requestMatchers("/branch/**").hasRole("BRANCH_MANAGER")
+                        .requestMatchers("/marketing/**").hasRole("MARKETING")
+                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
 
                         // 🔒 Secure all other endpoints
                         .anyRequest().authenticated()
