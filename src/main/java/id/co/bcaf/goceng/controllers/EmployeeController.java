@@ -75,4 +75,12 @@ public class EmployeeController {
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
+
+    @PutMapping("/{id_employee}/restore")
+    public ResponseEntity<Void> restoreEmployee(@PathVariable UUID id_employee) {
+        boolean restored = employeeService.restoreEmployee(id_employee);
+        return restored ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+
 }

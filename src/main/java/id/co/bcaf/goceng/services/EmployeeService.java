@@ -93,6 +93,16 @@ public class EmployeeService {
         }).orElse(false);
     }
 
+    @Transactional
+    public boolean restoreEmployee(UUID id_employee) {
+        return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
+            employee.setWorkStatus(WorkStatus.ACTIVE);
+            employeeRepository.save(employee);
+            return true;
+        }).orElse(false);
+    }
+
+
     private String generateRandomNIP() {
         return "NIP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
