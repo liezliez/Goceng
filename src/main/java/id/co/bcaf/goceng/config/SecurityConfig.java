@@ -28,13 +28,15 @@ public class SecurityConfig {
                         // 🔓 Publicly accessible endpoints
                         .requestMatchers(
                                 "/api/v1/auth/login",
-                                "/api/v1/auth/register"
+                                "/api/v1/auth/register",
+                                "/users/**",
+                                "/employees/**"
                         ).permitAll()
 
                         .requestMatchers("/features", "/users").permitAll() // 🛑 Is this correct? Remove if not intended.
 
                         // 🔒 Role-based access control (use hasAuthority if roles are stored without "ROLE_")
-                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
+//                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
                         .requestMatchers("/branch/**").hasRole("BRANCH_MANAGER")
                         .requestMatchers("/marketing/**").hasRole("MARKETING")
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")

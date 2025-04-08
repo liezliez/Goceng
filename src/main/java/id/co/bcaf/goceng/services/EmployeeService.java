@@ -1,8 +1,12 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.dto.EmployeeUpdateRequest;
+import id.co.bcaf.goceng.enums.WorkStatus;
 import id.co.bcaf.goceng.models.Employee;
+import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
+import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,27 +23,41 @@ public class EmployeeService {
     private EmployeeRepository employeeRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
-    // ✅ Create Employee using id_user
+    // ✅ Create an Employee using id_user (UUID from body) and assign role by id_role
     @Transactional
-    public Employee createEmployee(UUID id_user) {
-        // 🔹 Fetch user details using id_user
+    public Employee createEmployee(UUID id_user, Integer id_role) {
+        // 1. Find user
         User user = userRepository.findById(id_user)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 🔹 Create Employee with user details
+        // 2. Check if employee already exists
+        if (employeeRepository.existsByUser(user)) {
+            throw new RuntimeException("Employee already exists for this user");
+        }
+
+        // 3. Set user's role
+        Role role = roleRepository.findById(id_role)
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+        user.setRole(role);
+        userRepository.save(user);
+
+        // 4. Create employee from user data
         Employee employee = new Employee();
         employee.setUser(user);
         employee.setName(user.getName());
-        employee.setBranch("Default Branch");  // Set branch manually if needed
-        employee.setWorkStatus("ACTIVE");      // Default status
-        employee.setNIP(generateRandomNIP());  // Generate unique NIP
+        employee.setBranch("Default Branch");
+        employee.setWorkStatus(WorkStatus.ACTIVE);
+        employee.setNIP(generateRandomNIP());
 
         return employeeRepository.save(employee);
     }
 
-    // ✅ Get all employees
+    // ✅ Fetch all employees
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();
     }
@@ -49,27 +67,31 @@ public class EmployeeService {
         return employeeRepository.findById(id_employee);
     }
 
-    // ✅ Update employee (Only updates fields, not user details)
+    // ✅ Update employee (only name and branch)
     @Transactional
-    public Optional<Employee> updateEmployee(UUID id_employee, Employee employeeDetails) {
+    public Optional<Employee> updateEmployee(UUID id_employee, EmployeeUpdateRequest request) {
         return employeeRepository.findByIdWithLock(id_employee).map(existingEmployee -> {
-            existingEmployee.setBranch(employeeDetails.getBranch());
-            existingEmployee.setWorkStatus(employeeDetails.getWorkStatus());
+            if (request.getName() != null) {
+                existingEmployee.setName(request.getName());
+            }
+            if (request.getBranch() != null) {
+                existingEmployee.setBranch(request.getBranch());
+            }
             return employeeRepository.save(existingEmployee);
         });
     }
 
-    // ✅ Delete employee
+    // ✅ Soft delete employee by setting workStatus to INACTIVE
     @Transactional
     public boolean deleteEmployee(UUID id_employee) {
-        if (employeeRepository.existsById(id_employee)) {
-            employeeRepository.deleteById(id_employee);
+        return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
+            employee.setWorkStatus(WorkStatus.INACTIVE);
+            employeeRepository.save(employee);
             return true;
-        }
-        return false;
+        }).orElse(false);
     }
 
-    // ✅ Helper function to generate unique NIP
+    // ✅ Generate a unique NIP for employee
     private String generateRandomNIP() {
         return "NIP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }

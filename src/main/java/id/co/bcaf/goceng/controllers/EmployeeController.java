@@ -1,5 +1,7 @@
 package id.co.bcaf.goceng.controllers;
 
+import id.co.bcaf.goceng.dto.CreateEmployeeRequest;
+import id.co.bcaf.goceng.dto.EmployeeUpdateRequest;
 import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.services.EmployeeService;
@@ -30,21 +32,19 @@ public class EmployeeController {
 
     // ✅ Create Employee using Authenticated User's id_user
     @PostMapping
-    public ResponseEntity<Employee> createEmployee(@RequestHeader("Authorization") String authHeader) {
-        // 🔹 Extract email from JWT Token
-        String token = authHeader.replace("Bearer ", "");
-        String email = jwtUtil.extractEmail(token);
-
-        // 🔹 Find User by email
-        Optional<User> user = userService.getUserByEmail(email);
-        if (user.isEmpty()) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> createEmployee(@RequestBody CreateEmployeeRequest request) {
+        try {
+            Employee employee = employeeService.createEmployee(
+                    request.getId_user(),
+                    request.getId_role() // <-- This was missing
+            );
+            return ResponseEntity.ok(employee);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
-
-        // 🔹 Use `id_user` to create Employee
-        Employee employee = employeeService.createEmployee(user.get().getId_user());
-        return ResponseEntity.ok(employee);
     }
+
+
 
     // ✅ Get All Employees
     @GetMapping
@@ -61,8 +61,8 @@ public class EmployeeController {
 
     // ✅ Update Employee
     @PutMapping("/{id_employee}")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable UUID id_employee, @RequestBody Employee employeeDetails) {
-        Optional<Employee> updatedEmployee = employeeService.updateEmployee(id_employee, employeeDetails);
+    public ResponseEntity<Employee> updateEmployee(@PathVariable UUID id_employee, @RequestBody EmployeeUpdateRequest request) {
+        Optional<Employee> updatedEmployee = employeeService.updateEmployee(id_employee, request);
         return updatedEmployee.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 

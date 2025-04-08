@@ -5,6 +5,7 @@ import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -66,27 +67,27 @@ public class UserController {
                 });
     }
 
-    // # Soft delete user (not actually deleted the user, but just change account_status to DELETED)
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable UUID id) {
-        log.info("Deleting user with ID: {}", id);
+    @PostMapping("/{id}/delete")
+    public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
+        log.info("Soft-deleting user with ID: {}", id);
         boolean deleted = userService.deleteUser(id);
         if (deleted) {
-            return ResponseEntity.ok("User status changed to DELETED");
+            return ResponseEntity.ok("User has been soft-deleted (status: DELETED)");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
-        log.warn("User with ID {} not found for deletion", id);
-        return ResponseEntity.notFound().build();
     }
 
-    // # Restore user from DELETED to ACTIVE
-    @PutMapping("/{id}/restore")
+
+    @PostMapping("/{id}/restore")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
         log.info("Restoring user with ID: {}", id);
         boolean restored = userService.restoreUser(id);
         if (restored) {
-            return ResponseEntity.ok("User restored to ACTIVE");
+            return ResponseEntity.ok("User: restored to ACTIVE");
         }
         log.warn("User with ID {} not found or not in DELETED status", id);
         return ResponseEntity.badRequest().body("User is not in DELETED status or does not exist.");
     }
+
 }

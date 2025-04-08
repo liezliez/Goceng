@@ -1,5 +1,6 @@
 package id.co.bcaf.goceng.models;
 
+import id.co.bcaf.goceng.enums.WorkStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,7 +24,10 @@ public class Employee {
 
     private String name;
     private String branch;
-    private String workStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private WorkStatus workStatus;
 
     @OneToOne
     @JoinColumn(name = "id_user", nullable = false, unique = true)
