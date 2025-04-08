@@ -1,6 +1,7 @@
 package id.co.bcaf.goceng.services;
 
 import id.co.bcaf.goceng.dto.EmployeeUpdateRequest;
+import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.enums.WorkStatus;
 import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.models.Role;
@@ -28,25 +29,25 @@ public class EmployeeService {
     @Autowired
     private UserRepository userRepository;
 
-    // ✅ Create an Employee using id_user (UUID from body) and assign role by id_role
     @Transactional
     public Employee createEmployee(UUID id_user, Integer id_role) {
-        // 1. Find user
         User user = userRepository.findById(id_user)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2. Check if employee already exists
         if (employeeRepository.existsByUser(user)) {
             throw new RuntimeException("Employee already exists for this user");
         }
 
-        // 3. Set user's role
         Role role = roleRepository.findById(id_role)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
         user.setRole(role);
+
+        if (user.getAccountStatus() == null) {
+            user.setAccountStatus(AccountStatus.ACTIVE);
+        }
+
         userRepository.save(user);
 
-        // 4. Create employee from user data
         Employee employee = new Employee();
         employee.setUser(user);
         employee.setName(user.getName());
@@ -57,17 +58,15 @@ public class EmployeeService {
         return employeeRepository.save(employee);
     }
 
-    // ✅ Fetch all employees
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();
     }
 
-    // ✅ Get employee by ID
     public Optional<Employee> getEmployeeById(UUID id_employee) {
         return employeeRepository.findById(id_employee);
     }
 
-    // ✅ Update employee (only name and branch)
+    // ✅ Updated to remove id_user; sync user.name from employee.name
     @Transactional
     public Optional<Employee> updateEmployee(UUID id_employee, EmployeeUpdateRequest request) {
         return employeeRepository.findByIdWithLock(id_employee).map(existingEmployee -> {
@@ -77,11 +76,14 @@ public class EmployeeService {
             if (request.getBranch() != null) {
                 existingEmployee.setBranch(request.getBranch());
             }
+            if (request.getWorkStatus() != null) {
+                existingEmployee.setWorkStatus(request.getWorkStatus());
+            }
+
             return employeeRepository.save(existingEmployee);
         });
     }
 
-    // ✅ Soft delete employee by setting workStatus to INACTIVE
     @Transactional
     public boolean deleteEmployee(UUID id_employee) {
         return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
@@ -91,7 +93,6 @@ public class EmployeeService {
         }).orElse(false);
     }
 
-    // ✅ Generate a unique NIP for employee
     private String generateRandomNIP() {
         return "NIP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }

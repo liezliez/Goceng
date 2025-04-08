@@ -3,14 +3,11 @@ package id.co.bcaf.goceng.controllers;
 import id.co.bcaf.goceng.dto.CreateEmployeeRequest;
 import id.co.bcaf.goceng.dto.EmployeeUpdateRequest;
 import id.co.bcaf.goceng.models.Employee;
-import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.services.EmployeeService;
 import id.co.bcaf.goceng.services.UserService;
 import id.co.bcaf.goceng.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,21 +27,19 @@ public class EmployeeController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // ✅ Create Employee using Authenticated User's id_user
+    // ✅ Create Employee using id_user and id_role from body
     @PostMapping
     public ResponseEntity<?> createEmployee(@RequestBody CreateEmployeeRequest request) {
         try {
             Employee employee = employeeService.createEmployee(
                     request.getId_user(),
-                    request.getId_role() // <-- This was missing
+                    request.getId_role()
             );
             return ResponseEntity.ok(employee);
         } catch (RuntimeException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
-
-
 
     // ✅ Get All Employees
     @GetMapping
@@ -59,16 +54,25 @@ public class EmployeeController {
         return employee.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ Update Employee
+    // ✅ Update Employee (only name, branch, workStatus)
     @PutMapping("/{id_employee}")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable UUID id_employee, @RequestBody EmployeeUpdateRequest request) {
-        Optional<Employee> updatedEmployee = employeeService.updateEmployee(id_employee, request);
-        return updatedEmployee.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> updateEmployee(
+            @PathVariable UUID id_employee,
+            @RequestBody EmployeeUpdateRequest request
+    ) {
+        try {
+            Optional<Employee> updatedEmployee = employeeService.updateEmployee(id_employee, request);
+            return updatedEmployee.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body("Error updating employee: " + ex.getMessage());
+        }
     }
 
-    // ✅ Delete Employee
+    // ✅ Soft Delete Employee
     @DeleteMapping("/{id_employee}")
     public ResponseEntity<Void> deleteEmployee(@PathVariable UUID id_employee) {
-        return employeeService.deleteEmployee(id_employee) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        return employeeService.deleteEmployee(id_employee)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 }

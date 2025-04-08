@@ -32,4 +32,8 @@ public class Employee {
     @OneToOne
     @JoinColumn(name = "id_user", nullable = false, unique = true)
     private User user;
+
+    // 🔥 Add this for optimistic locking
+    @Version
+    private int version;
 }
