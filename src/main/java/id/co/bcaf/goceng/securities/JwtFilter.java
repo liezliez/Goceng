@@ -1,5 +1,6 @@
 package id.co.bcaf.goceng.securities;
 
+import id.co.bcaf.goceng.repositories.BlacklistedTokenRepository;
 import id.co.bcaf.goceng.utils.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,10 +23,12 @@ import java.util.Collections;
 public class JwtFilter extends GenericFilterBean {
 
     private final JwtUtil jwtUtil;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     @Autowired
-    public JwtFilter(JwtUtil jwtUtil) {
+    public JwtFilter(JwtUtil jwtUtil, BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtUtil = jwtUtil;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
     @Override
@@ -36,44 +39,44 @@ public class JwtFilter extends GenericFilterBean {
         String authHeader = httpRequest.getHeader("Authorization");
         String requestURI = httpRequest.getRequestURI();
 
-        // ✅ Log Incoming Request
         System.out.println("🔹 Incoming Request URI: " + requestURI);
         System.out.println("🔹 Raw Authorization Header: " + authHeader);
 
-        // ✅ Allow public endpoints without JWT
         if (requestURI.equals("/api/v1/auth/login") ||
-                requestURI.equals("/api/v1/auth/register")
-                ||
-                requestURI.matches("^/users(/[^/]+)?$")) {  // Matches "/users" and "/users/{id}"
-                    System.out.println("✅ Public endpoint accessed: " + requestURI);
-                    chain.doFilter(request, response);
-                    return;
-                }
+                requestURI.equals("/api/v1/auth/register") ||
+                requestURI.matches("^/users(/[^/]+)?$")) {
+            System.out.println("✅ Public endpoint accessed: " + requestURI);
+            chain.doFilter(request, response);
+            return;
+        }
 
-        // ✅ Check if Authorization header is missing or invalid
         if (authHeader == null || !authHeader.toLowerCase().startsWith("bearer ")) {
             System.out.println("⛔ Authorization header missing or invalid.");
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid token");
             return;
         }
 
-        // ✅ Extract token by removing "Bearer " prefix (case-insensitive)
+        // Extract token
         String token = authHeader.replaceFirst("(?i)^Bearer\\s+", "").trim();
         System.out.println("🔹 Processed Token: " + token);
 
+        // Check if token is blacklisted
+        if (blacklistedTokenRepository.existsByToken(token)) {
+            System.out.println("⛔ JWT is blacklisted: " + token);
+            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Blacklisted token");
+            return;
+        }
+
         try {
-            // ✅ Extract email from token
             String email = jwtUtil.extractEmail(token);
             System.out.println("🔹 Extracted Email from Token: " + email);
 
-            // ✅ Validate token
             if (email == null || !jwtUtil.validateToken(token, email)) {
                 System.out.println("⛔ Token validation failed.");
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;
             }
 
-            // ✅ Authenticate user
             UserDetails userDetails = new User(email, "", Collections.emptyList());
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
