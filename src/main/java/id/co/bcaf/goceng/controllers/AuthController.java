@@ -2,8 +2,11 @@ package id.co.bcaf.goceng.controllers;
 
 import id.co.bcaf.goceng.dto.AuthRequest;
 import id.co.bcaf.goceng.dto.AuthResponse;
+import id.co.bcaf.goceng.models.BlacklistedToken;
+import id.co.bcaf.goceng.repositories.BlacklistedTokenRepository;
 import id.co.bcaf.goceng.services.AuthService;
 import id.co.bcaf.goceng.utils.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,16 +15,25 @@ import org.springframework.web.bind.annotation.*;
 // Password reset
 import id.co.bcaf.goceng.services.PasswordResetService;
 
+// Blacklist token
+import java.time.ZoneId;
+
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
+    // Inject
     @Autowired
     private JwtUtil jwtUtil;
     @Autowired
     private AuthService authService;
+    @Autowired
+    private BlacklistedTokenRepository blacklistedTokenRepository;
+
+
+    // This is for login
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
@@ -41,6 +53,8 @@ public class AuthController {
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing or invalid Authorization header");
     }
+
+    // This is for resetting password
 
     @Autowired
     private PasswordResetService passwordResetService;
@@ -72,6 +86,27 @@ public class AuthController {
         }
     }
 
+    // This is for blacklist token logout
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+
+            if (!jwtUtil.isTokenExpired(token)) {
+                BlacklistedToken blacklisted = new BlacklistedToken();
+                blacklisted.setToken(token);
+                blacklisted.setExpiryDate(
+                        jwtUtil.extractExpiration(token).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                );
+                blacklistedTokenRepository.save(blacklisted);
+            }
+        }
+
+        return ResponseEntity.ok("Logged out successfully");
+    }
 
 
 }
