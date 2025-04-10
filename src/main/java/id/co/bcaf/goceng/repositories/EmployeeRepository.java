@@ -1,6 +1,7 @@
 package id.co.bcaf.goceng.repositories;
 
 import id.co.bcaf.goceng.models.Employee;
+import id.co.bcaf.goceng.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -16,4 +17,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     @Lock(LockModeType.OPTIMISTIC)
     @Query("SELECT e FROM Employee e WHERE e.id_employee = :id_employee")
     Optional<Employee> findByIdWithLock(@Param("id_employee") UUID id_employee);
+    boolean existsByUser(User user);
+
 }

@@ -1,7 +1,14 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.dto.EmployeeUpdateRequest;
+import id.co.bcaf.goceng.enums.AccountStatus;
+import id.co.bcaf.goceng.enums.WorkStatus;
 import id.co.bcaf.goceng.models.Employee;
+import id.co.bcaf.goceng.models.Role;
+import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
+import id.co.bcaf.goceng.repositories.RoleRepository;
+import id.co.bcaf.goceng.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,41 +23,87 @@ public class EmployeeService {
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    // ✅ Create Employee
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     @Transactional
-    public Employee createEmployee(Employee employee) {
+    public Employee createEmployee(UUID id_user, Integer id_role) {
+        User user = userRepository.findById(id_user)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (employeeRepository.existsByUser(user)) {
+            throw new RuntimeException("Employee already exists for this user");
+        }
+
+        Role role = roleRepository.findById(id_role)
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+        user.setRole(role);
+
+        if (user.getAccountStatus() == null) {
+            user.setAccountStatus(AccountStatus.ACTIVE);
+        }
+
+        userRepository.save(user);
+
+        Employee employee = new Employee();
+        employee.setUser(user);
+        employee.setName(user.getName());
+        employee.setBranch("Default Branch");
+        employee.setWorkStatus(WorkStatus.ACTIVE);
+        employee.setNIP(generateRandomNIP());
+
         return employeeRepository.save(employee);
     }
 
-    // ✅ Get all employees
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();
     }
 
-    // ✅ Get employee by ID
     public Optional<Employee> getEmployeeById(UUID id_employee) {
         return employeeRepository.findById(id_employee);
     }
 
-    // ✅ Update employee (Optimistic Locking Applied)
+    // ✅ Updated to remove id_user; sync user.name from employee.name
     @Transactional
-    public Optional<Employee> updateEmployee(UUID id_employee, Employee employeeDetails) {
+    public Optional<Employee> updateEmployee(UUID id_employee, EmployeeUpdateRequest request) {
         return employeeRepository.findByIdWithLock(id_employee).map(existingEmployee -> {
-            existingEmployee.setNIP(employeeDetails.getNIP());
-            existingEmployee.setName(employeeDetails.getName());
-            existingEmployee.setBranch(employeeDetails.getBranch());
-            existingEmployee.setWorkStatus(employeeDetails.getWorkStatus());
-            return employeeRepository.save(existingEmployee);  // ✅ Save only after updating fields
+            if (request.getName() != null) {
+                existingEmployee.setName(request.getName());
+            }
+            if (request.getBranch() != null) {
+                existingEmployee.setBranch(request.getBranch());
+            }
+            if (request.getWorkStatus() != null) {
+                existingEmployee.setWorkStatus(request.getWorkStatus());
+            }
+
+            return employeeRepository.save(existingEmployee);
         });
     }
 
-    // ✅ Delete employee
     @Transactional
     public boolean deleteEmployee(UUID id_employee) {
-        if (employeeRepository.existsById(id_employee)) {
-            employeeRepository.deleteById(id_employee);
+        return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
+            employee.setWorkStatus(WorkStatus.INACTIVE);
+            employeeRepository.save(employee);
             return true;
-        }
-        return false;
+        }).orElse(false);
+    }
+
+    @Transactional
+    public boolean restoreEmployee(UUID id_employee) {
+        return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
+            employee.setWorkStatus(WorkStatus.ACTIVE);
+            employeeRepository.save(employee);
+            return true;
+        }).orElse(false);
+    }
+
+
+    private String generateRandomNIP() {
+        return "NIP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 }

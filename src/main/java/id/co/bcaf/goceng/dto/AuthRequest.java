@@ -5,16 +5,15 @@ import lombok.Setter;
 
 @Getter
 @Setter
-
 public class AuthRequest {
+
+    private String email;   // ✅ Renamed from "username" to "email"
+    private String password;
 
     public AuthRequest() {}
 
-    private String username;
-    private String password;
-
-    public AuthRequest(String username, String password) {
-        this.username = username;
+    public AuthRequest(String email, String password) {
+        this.email = email;
         this.password = password;
     }
 }
