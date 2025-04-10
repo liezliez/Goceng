@@ -14,7 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
@@ -48,9 +50,10 @@ public class PasswordResetService {
         }
 
         User user = optionalUser.get();
-        tokenRepository.deleteByUser(user); // this line needs a transaction
+        tokenRepository.deleteByUser(user);
 
-        String token = UUID.randomUUID().toString();
+        String token = generateSecureToken();
+
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUser(user);
@@ -59,6 +62,7 @@ public class PasswordResetService {
 
         sendEmail(email, token);
     }
+
 
 
     @Transactional
@@ -100,4 +104,12 @@ public class PasswordResetService {
             throw new RuntimeException("Failed to send email", e);
         }
     }
+
+    private String generateSecureToken() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] tokenBytes = new byte[32]; // 256-bit token
+        secureRandom.nextBytes(tokenBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    }
+
 }
