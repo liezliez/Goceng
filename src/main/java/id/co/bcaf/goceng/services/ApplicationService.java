@@ -27,9 +27,23 @@ public class ApplicationService {
     // Create Application
     @Transactional
     public ApplicationResponse create(ApplicationRequest req) {
+        // Check the customer
         Customer customer = customerRepo.findByUserIdUser(req.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
+        // Check if the Customer had already ongoing application, puyeng rek
+        boolean hasPending = applicationRepo.existsByCustomerAndStatusIn(customer, List.of(
+                ApplicationStatus.PENDING_MARKETING,
+                ApplicationStatus.PENDING_BRANCH_MANAGER,
+                ApplicationStatus.PENDING_BACK_OFFICE
+        ));
+
+        // If had already ongoing application
+        if (hasPending) {
+            throw new RuntimeException("Customer already has an active application");
+        }
+
+        // First set up for the application
         Application app = new Application();
         app.setCustomer(customer);
         app.setAmount(req.getAmount());
@@ -136,8 +150,8 @@ public class ApplicationService {
     private ApplicationResponse convertToResponse(Application app) {
         return ApplicationResponse.builder()
                 .id(app.getId())
-                .customerId(app.getCustomer().getIdCustomer()) // ✅ fixed
-                .customerName(app.getCustomer().getUser().getName()) // ✅ fixed
+                .customerId(app.getCustomer().getIdCustomer())
+                .customerName(app.getCustomer().getUser().getName())
                 .amount(app.getAmount())
                 .purpose(app.getPurpose())
                 .status(app.getStatus().name())
