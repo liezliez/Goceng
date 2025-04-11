@@ -8,6 +8,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+
+    // Cari user berdasarkan status akun
     List<User> findByAccountStatus(AccountStatus accountStatus);
-    Optional<User> findByEmail(String email); // Find user by email
+
+    // Cari user berdasarkan email
+    Optional<User> findByEmail(String email);
+
+    // Cari berdasarkan ID yang benar (idUser)
+    Optional<User> findByIdUser(UUID idUser);
 }

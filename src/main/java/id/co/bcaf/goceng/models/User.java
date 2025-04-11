@@ -18,7 +18,8 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id_user;
+    @Column(name = "id_user")
+    private UUID idUser;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -30,7 +31,7 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "account_status", nullable = false) // ✅ Ensures correct column mapping
+    @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus;
 
     @ManyToOne
