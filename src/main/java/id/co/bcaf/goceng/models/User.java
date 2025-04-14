@@ -38,10 +38,12 @@ public class User {
     @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 
+    // Adding the relationship to Branch with nullable=true (if it's optional)
+    @ManyToOne
+    @JoinColumn(name = "id_branch", nullable = true) // Set to true if it can be optional, otherwise keep as false
+    private Branch branch;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private Employee employee;
-
-
-
 }

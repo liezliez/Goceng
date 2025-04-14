@@ -23,7 +23,10 @@ public class Employee {
     private String NIP;
 
     private String name;
-    private String branch;
+
+    @ManyToOne
+    @JoinColumn(name = "id_branch")
+    private Branch branch;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
