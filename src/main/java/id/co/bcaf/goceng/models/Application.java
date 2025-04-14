@@ -16,7 +16,7 @@ import java.util.UUID;
 @Table(name = "application")
 public class Application {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO) // Still using UUID
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id_application", updatable = false, nullable = false)
     private UUID id;
 
@@ -57,4 +57,17 @@ public class Application {
     @Column(name = "back_office_approval_time")
     private LocalDateTime backOfficeApprovalTime;
 
+    // New field to store the proposed branch
+    private String branch;
+
+
+    // In Application.java
+    public UUID getUserId() {
+        return customer.getUser().getIdUser();
+    }
+
+    public String getCustomerName() {
+        return customer.getUser().getName();
+    }
 }
+

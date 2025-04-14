@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CustomerRepository extends JpaRepository<Customer, UUID> {
-    // ✅ Corrected method
-    Optional<Customer> findByUserIdUser(UUID idUser);
+    Optional<Customer> findByUserIdUser(UUID idUser);  // Find customer by user ID
+
+    // Add this new method to find by id_customer
+    Optional<Customer> findByIdCustomer(UUID idCustomer);  // Find customer by id_customer
 }
