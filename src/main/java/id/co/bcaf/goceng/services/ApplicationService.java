@@ -7,11 +7,11 @@ import id.co.bcaf.goceng.models.Application;
 import id.co.bcaf.goceng.models.Customer;
 import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.models.User;
-import id.co.bcaf.goceng.models.Branch; // Ensure Branch is imported
+import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.repositories.ApplicationRepository;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
-import id.co.bcaf.goceng.repositories.BranchRepository; // Add the BranchRepository for fetching Branches
+import id.co.bcaf.goceng.repositories.BranchRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -29,7 +29,7 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepo;
     private final CustomerRepository customerRepo;
     private final EmployeeRepository employeeRepo;
-    private final BranchRepository branchRepo; // Add BranchRepository
+    private final BranchRepository branchRepo;
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -56,14 +56,11 @@ public class ApplicationService {
 
         System.out.println("Received branchId: " + req.getBranchId());
 
-        // Fetch the Branch entity based on the branchId (now UUID type) from the request
+        // Fetch the Branch entity based on the branchId
         Branch branch = branchRepo.findById(req.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
         Application app = new Application();
-
-
-
         app.setCustomer(customer);
         app.setAmount(req.getAmount());
         app.setPurpose(req.getPurpose());
@@ -74,7 +71,6 @@ public class ApplicationService {
 
         return convertToResponse(applicationRepo.save(app));
     }
-
 
     @Transactional
     public ApplicationResponse marketingApprove(UUID id, boolean isApproved) {
@@ -115,10 +111,30 @@ public class ApplicationService {
         }
 
         setApprovalFields(app, approver, role);
-        app.setStatus(isApproved ? nextStatus : ApplicationStatus.REJECTED);
+
+        // Set status based on approval or rejection
+        if (isApproved) {
+            app.setStatus(nextStatus); // Move to the next stage if approved
+        } else {
+            app.setStatus(getRejectedStatus(role)); // Set rejection status based on the role
+        }
+
         app.setUpdatedAt(LocalDateTime.now());
 
         return convertToResponse(applicationRepo.save(app));
+    }
+
+    private ApplicationStatus getRejectedStatus(ApprovalRole role) {
+        switch (role) {
+            case MARKETING:
+                return ApplicationStatus.REJECTED_MARKETING;
+            case BRANCH_MANAGER:
+                return ApplicationStatus.REJECTED_BRANCH_MANAGER;
+            case BACK_OFFICE:
+                return ApplicationStatus.REJECTED_BACK_OFFICE;
+            default:
+                throw new IllegalStateException("Unexpected value: " + role);
+        }
     }
 
     private void setApprovalFields(Application app, User approver, ApprovalRole role) {
