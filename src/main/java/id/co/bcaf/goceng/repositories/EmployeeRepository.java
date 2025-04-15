@@ -20,6 +20,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
     boolean existsByUser(User user);
 
-    // Fix this method: correctly reference the 'user' field in the Employee entity
-    Optional<Employee> findByUser_IdUser(UUID user);  // Change here: 'user.idUser'
+    // ✅ Correct: Fetch employee by the user's idUser field
+    Optional<Employee> findByUser_IdUser(UUID idUser);
 }

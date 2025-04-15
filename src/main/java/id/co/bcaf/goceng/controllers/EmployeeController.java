@@ -6,7 +6,9 @@ import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.services.EmployeeService;
 import id.co.bcaf.goceng.services.UserService;
 import id.co.bcaf.goceng.utils.JwtUtil;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -80,6 +82,11 @@ public class EmployeeController {
     public ResponseEntity<Void> restoreEmployee(@PathVariable UUID id_employee) {
         boolean restored = employeeService.restoreEmployee(id_employee);
         return restored ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<String> handleEntityNotFoundException(EntityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
 

@@ -11,6 +11,7 @@ import id.co.bcaf.goceng.repositories.BranchRepository;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -119,6 +120,15 @@ public class EmployeeService {
             return true;
         }).orElse(false);
     }
+
+    public Employee findEmployeeById(UUID id) {
+        Optional<Employee> employee = employeeRepository.findById(id);
+        if (employee.isEmpty()) {
+            throw new EntityNotFoundException("Employee not found with ID: " + id);
+        }
+        return employee.get();
+    }
+
 
 
     private String generateRandomNIP() {
