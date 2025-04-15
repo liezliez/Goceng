@@ -7,9 +7,11 @@ import id.co.bcaf.goceng.models.Application;
 import id.co.bcaf.goceng.models.Customer;
 import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.models.User;
+import id.co.bcaf.goceng.models.Branch; // Ensure Branch is imported
 import id.co.bcaf.goceng.repositories.ApplicationRepository;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
+import id.co.bcaf.goceng.repositories.BranchRepository; // Add the BranchRepository for fetching Branches
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -27,6 +29,7 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepo;
     private final CustomerRepository customerRepo;
     private final EmployeeRepository employeeRepo;
+    private final BranchRepository branchRepo; // Add BranchRepository
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -51,17 +54,27 @@ public class ApplicationService {
             throw new RuntimeException("Customer already has an active application");
         }
 
+        System.out.println("Received branchId: " + req.getBranchId());
+
+        // Fetch the Branch entity based on the branchId (now UUID type) from the request
+        Branch branch = branchRepo.findById(req.getBranchId())
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
         Application app = new Application();
+
+
+
         app.setCustomer(customer);
         app.setAmount(req.getAmount());
         app.setPurpose(req.getPurpose());
-        app.setBranch(req.getBranch());
+        app.setBranch(branch); // Set the correct Branch reference
         app.setStatus(ApplicationStatus.PENDING_MARKETING);
         app.setCreatedAt(LocalDateTime.now());
         app.setUpdatedAt(LocalDateTime.now());
 
         return convertToResponse(applicationRepo.save(app));
     }
+
 
     @Transactional
     public ApplicationResponse marketingApprove(UUID id, boolean isApproved) {
@@ -96,11 +109,10 @@ public class ApplicationService {
         Employee employee = employeeRepo.findByUser_IdUser(approver.getIdUser())
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Check branch != with the branch of the user
+        // Check if the approver's branch matches the application branch
         if (!employee.getBranch().equals(app.getBranch())) {
             throw new IllegalStateException("You are not authorized to approve this application from a different branch.");
         }
-
 
         setApprovalFields(app, approver, role);
         app.setStatus(isApproved ? nextStatus : ApplicationStatus.REJECTED);

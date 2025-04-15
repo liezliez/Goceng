@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-
 @Getter
 @Setter
 @Entity
@@ -57,9 +56,10 @@ public class Application {
     @Column(name = "back_office_approval_time")
     private LocalDateTime backOfficeApprovalTime;
 
-    // New field to store the proposed branch
-    private String branch;
-
+    // Reference to Branch entity
+    @ManyToOne
+    @JoinColumn(name = "id_branch")
+    private Branch branch;
 
     // In Application.java
     public UUID getUserId() {
@@ -70,4 +70,3 @@ public class Application {
         return customer.getUser().getName();
     }
 }
-
