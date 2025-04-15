@@ -54,8 +54,6 @@ public class ApplicationService {
             throw new RuntimeException("Customer already has an active application");
         }
 
-        System.out.println("Received branchId: " + req.getBranchId());
-
         Branch branch = branchRepo.findById(req.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
@@ -109,10 +107,6 @@ public class ApplicationService {
             case BACK_OFFICE -> "ROLE_BACK_OFFICE";
         };
 
-        System.out.println("Required Role: " + requiredRole);
-        System.out.println("User Role: " + approver.getRole().getRole_name());
-
-
         boolean hasRequiredRole = approver.getRole().getRole_name().equals(requiredRole);
 
         if (!hasRequiredRole) {
@@ -152,16 +146,16 @@ public class ApplicationService {
 
         switch (role) {
             case MARKETING -> {
-                app.setMarketingApprover(approver);
-                app.setMarketingApprovalTime(now);
+                app.setMarketingAssigned(approver);
+                app.setMarketingAssignedTime(now);
             }
             case BRANCH_MANAGER -> {
-                app.setBranchManagerApprover(approver);
-                app.setBranchManagerApprovalTime(now);
+                app.setBranchManagerAssigned(approver);
+                app.setBranchManagerAssignedTime(now);
             }
             case BACK_OFFICE -> {
-                app.setBackOfficeApprover(approver);
-                app.setBackOfficeApprovalTime(now);
+                app.setBackOfficeAssigned(approver);
+                app.setBackOfficeAssignedTime(now);
             }
         }
     }
@@ -176,12 +170,12 @@ public class ApplicationService {
                 .status(app.getStatus().name())
                 .createdAt(app.getCreatedAt())
                 .updatedAt(app.getUpdatedAt())
-                .marketingApproverName(app.getMarketingApprover() != null ? app.getMarketingApprover().getName() : null)
-                .branchManagerApproverName(app.getBranchManagerApprover() != null ? app.getBranchManagerApprover().getName() : null)
-                .backOfficeApproverName(app.getBackOfficeApprover() != null ? app.getBackOfficeApprover().getName() : null)
-                .marketingApprovalTime(app.getMarketingApprovalTime())
-                .branchManagerApprovalTime(app.getBranchManagerApprovalTime())
-                .backOfficeApprovalTime(app.getBackOfficeApprovalTime())
+                .marketingAssignedName(app.getMarketingAssigned() != null ? app.getMarketingAssigned().getName() : null)
+                .branchManagerAssignedName(app.getBranchManagerAssigned() != null ? app.getBranchManagerAssigned().getName() : null)
+                .backOfficeAssignedName(app.getBackOfficeAssigned() != null ? app.getBackOfficeAssigned().getName() : null)
+                .marketingAssignedTime(app.getMarketingAssignedTime())
+                .branchManagerAssignedTime(app.getBranchManagerAssignedTime())
+                .backOfficeAssignedTime(app.getBackOfficeAssignedTime())
                 .build();
     }
 }
