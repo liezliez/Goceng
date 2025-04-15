@@ -8,10 +8,13 @@ import id.co.bcaf.goceng.models.Customer;
 import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.models.Branch;
+import id.co.bcaf.goceng.models.ApplicationLog;
 import id.co.bcaf.goceng.repositories.ApplicationRepository;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
 import id.co.bcaf.goceng.repositories.BranchRepository;
+import id.co.bcaf.goceng.repositories.ApplicationLogRepository;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -30,6 +33,7 @@ public class ApplicationService {
     private final CustomerRepository customerRepo;
     private final EmployeeRepository employeeRepo;
     private final BranchRepository branchRepo;
+    private final ApplicationLogRepository applicationLogRepository;
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -88,8 +92,9 @@ public class ApplicationService {
         MARKETING, BRANCH_MANAGER, BACK_OFFICE
     }
 
-    private ApplicationResponse handleApproval(UUID id, boolean isApproved, ApplicationStatus currentStatus,
-                                               ApplicationStatus nextStatus, ApprovalRole role) {
+    @Transactional
+    public ApplicationResponse handleApproval(UUID id, boolean isApproved, ApplicationStatus currentStatus,
+                                              ApplicationStatus nextStatus, ApprovalRole role) {
 
         Application app = applicationRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
@@ -122,6 +127,8 @@ public class ApplicationService {
 
         setApprovalFields(app, approver, role);
 
+        String beforeStatus = app.getStatus().name();
+
         if (isApproved) {
             app.setStatus(nextStatus);
         } else {
@@ -130,6 +137,16 @@ public class ApplicationService {
 
         app.setUpdatedAt(LocalDateTime.now());
 
+        String afterStatus = app.getStatus().name();
+
+        // Determine the action for the log (APPROVE or REJECT)
+        String action = isApproved ? "APPROVE" : "REJECT";
+
+        // Log the application change (approval/rejection)
+        logApplicationChange(app.getId(), action, approver.getUsername(), beforeStatus, afterStatus,
+                isApproved ? "Application approved" : "Application rejected");
+
+        // Save the application (this should update the status in the database)
         return convertToResponse(applicationRepo.save(app));
     }
 
@@ -178,4 +195,18 @@ public class ApplicationService {
                 .backOfficeAssignedTime(app.getBackOfficeAssignedTime())
                 .build();
     }
+
+    private void logApplicationChange(UUID applicationId, String action, String changedBy, String beforeStatus, String afterStatus, String details) {
+        ApplicationLog log = new ApplicationLog();
+        log.setApplicationId(applicationId);
+        log.setAction(action);
+        log.setChangedBy(changedBy);
+        log.setTimestamp(LocalDateTime.now());
+        log.setBeforeStatus(beforeStatus);
+        log.setAfterStatus(afterStatus);
+        log.setDetails(details);
+
+        applicationLogRepository.save(log);
+    }
+
 }
