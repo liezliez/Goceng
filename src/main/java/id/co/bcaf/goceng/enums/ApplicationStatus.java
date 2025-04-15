@@ -5,8 +5,7 @@ public enum ApplicationStatus {
     PENDING_BRANCH_MANAGER,
     PENDING_BACK_OFFICE,
     APPROVED,
-    REJECTED,
-    REJECTED_MARKETING,   // Added detailed rejection status
-    REJECTED_BRANCH_MANAGER,   // Added detailed rejection status
-    REJECTED_BACK_OFFICE   // Added detailed rejection status
+    REJECTED_MARKETING,
+    REJECTED_BRANCH_MANAGER,
+    REJECTED_BACK_OFFICE
 }

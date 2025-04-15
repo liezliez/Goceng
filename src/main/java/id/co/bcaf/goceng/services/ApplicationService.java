@@ -56,7 +56,6 @@ public class ApplicationService {
 
         System.out.println("Received branchId: " + req.getBranchId());
 
-        // Fetch the Branch entity based on the branchId
         Branch branch = branchRepo.findById(req.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
@@ -64,7 +63,7 @@ public class ApplicationService {
         app.setCustomer(customer);
         app.setAmount(req.getAmount());
         app.setPurpose(req.getPurpose());
-        app.setBranch(branch); // Set the correct Branch reference
+        app.setBranch(branch);
         app.setStatus(ApplicationStatus.PENDING_MARKETING);
         app.setCreatedAt(LocalDateTime.now());
         app.setUpdatedAt(LocalDateTime.now());
@@ -102,21 +101,37 @@ public class ApplicationService {
         }
 
         User approver = getCurrentUser();
+
+        // Role validation
+        String requiredRole = switch (role) {
+            case MARKETING -> "ROLE_MARKETING";
+            case BRANCH_MANAGER -> "ROLE_BRANCH_MANAGER";
+            case BACK_OFFICE -> "ROLE_BACK_OFFICE";
+        };
+
+        System.out.println("Required Role: " + requiredRole);
+        System.out.println("User Role: " + approver.getRole().getRole_name());
+
+
+        boolean hasRequiredRole = approver.getRole().getRole_name().equals(requiredRole);
+
+        if (!hasRequiredRole) {
+            throw new SecurityException("You do not have the required role to approve this application. Required: " + requiredRole);
+        }
+
         Employee employee = employeeRepo.findByUser_IdUser(approver.getIdUser())
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Check if the approver's branch matches the application branch
         if (!employee.getBranch().equals(app.getBranch())) {
             throw new IllegalStateException("You are not authorized to approve this application from a different branch.");
         }
 
         setApprovalFields(app, approver, role);
 
-        // Set status based on approval or rejection
         if (isApproved) {
-            app.setStatus(nextStatus); // Move to the next stage if approved
+            app.setStatus(nextStatus);
         } else {
-            app.setStatus(getRejectedStatus(role)); // Set rejection status based on the role
+            app.setStatus(getRejectedStatus(role));
         }
 
         app.setUpdatedAt(LocalDateTime.now());
@@ -125,16 +140,11 @@ public class ApplicationService {
     }
 
     private ApplicationStatus getRejectedStatus(ApprovalRole role) {
-        switch (role) {
-            case MARKETING:
-                return ApplicationStatus.REJECTED_MARKETING;
-            case BRANCH_MANAGER:
-                return ApplicationStatus.REJECTED_BRANCH_MANAGER;
-            case BACK_OFFICE:
-                return ApplicationStatus.REJECTED_BACK_OFFICE;
-            default:
-                throw new IllegalStateException("Unexpected value: " + role);
-        }
+        return switch (role) {
+            case MARKETING -> ApplicationStatus.REJECTED_MARKETING;
+            case BRANCH_MANAGER -> ApplicationStatus.REJECTED_BRANCH_MANAGER;
+            case BACK_OFFICE -> ApplicationStatus.REJECTED_BACK_OFFICE;
+        };
     }
 
     private void setApprovalFields(Application app, User approver, ApprovalRole role) {
