@@ -1,8 +1,10 @@
 package id.co.bcaf.goceng.services;
 
 import id.co.bcaf.goceng.enums.AccountStatus;
+import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
+import id.co.bcaf.goceng.repositories.BranchRepository;  // Assuming you have a BranchRepository
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,11 +19,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final BranchRepository branchRepository;  // Inject the BranchRepository
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, BranchRepository branchRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -37,25 +41,38 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    // ✅ NEW: Get user by email
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
-    public User registerUser(User user) {
+    public User registerUser(User user, UUID branchId) {
         Role defaultRole = roleRepository.findById(2)
                 .orElseThrow(() -> new RuntimeException("Default role CUSTOMER not found"));
+
+        Branch branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
         user.setRole(defaultRole);
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setBranch(branch);  // Assign the branch to the user
+
         return userRepository.save(user);
     }
 
-    public User createUser(User user) {
+    public User createUser(User user, UUID branchId) {
+        // Fetch the role
         Role role = roleRepository.findById(user.getRole().getId_role())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        // Fetch the branch
+        Branch branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
         user.setRole(role);
         user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setBranch(branch);  // Assign the branch to the user
+
         return saveUser(user);
     }
 
@@ -77,6 +94,9 @@ public class UserService {
                 user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
             }
             user.setAccountStatus(userDetails.getAccountStatus());
+            if (userDetails.getBranch() != null) {
+                user.setBranch(userDetails.getBranch());  // Update the branch if provided
+            }
             return userRepository.save(user);
         });
     }

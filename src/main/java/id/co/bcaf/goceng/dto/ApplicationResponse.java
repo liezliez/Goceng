@@ -18,11 +18,13 @@ public class ApplicationResponse {
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String marketingApproverName;
-    private String branchManagerApproverName;
-    private String backOfficeApproverName;
-    private LocalDateTime marketingApprovalTime;
-    private LocalDateTime branchManagerApprovalTime;
-    private LocalDateTime backOfficeApprovalTime;
 
+    // Updated field names to reflect new naming conventions
+    private String marketingAssignedName;
+    private String branchManagerAssignedName;
+    private String backOfficeAssignedName;
+
+    private LocalDateTime marketingAssignedTime;
+    private LocalDateTime branchManagerAssignedTime;
+    private LocalDateTime backOfficeAssignedTime;
 }

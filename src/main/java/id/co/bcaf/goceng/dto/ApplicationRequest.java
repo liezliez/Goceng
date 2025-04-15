@@ -11,4 +11,5 @@ public class ApplicationRequest {
     private UUID customerId;
     private String purpose;
     private BigDecimal amount;
+    private UUID branchId;
 }

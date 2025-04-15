@@ -9,14 +9,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-
 @Getter
 @Setter
 @Entity
 @Table(name = "application")
 public class Application {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO) // Still using UUID
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id_application", updatable = false, nullable = false)
     private UUID id;
 
@@ -36,25 +35,39 @@ public class Application {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Updated field names for clarity
     @ManyToOne
-    @JoinColumn(name = "id_marketing_approver")
-    private User marketingApprover;
-
-    @ManyToOne
-    @JoinColumn(name = "id_branch_manager_approver")
-    private User branchManagerApprover;
+    @JoinColumn(name = "id_marketing_assigned")
+    private User marketingAssigned;
 
     @ManyToOne
-    @JoinColumn(name = "id_back_office_approver")
-    private User backOfficeApprover;
+    @JoinColumn(name = "id_branch_manager_assigned")
+    private User branchManagerAssigned;
 
-    @Column(name = "marketing_approval_time")
-    private LocalDateTime marketingApprovalTime;
+    @ManyToOne
+    @JoinColumn(name = "id_back_office_assigned")
+    private User backOfficeAssigned;
 
-    @Column(name = "branch_manager_approval_time")
-    private LocalDateTime branchManagerApprovalTime;
+    @Column(name = "marketing_assigned_time")
+    private LocalDateTime marketingAssignedTime;
 
-    @Column(name = "back_office_approval_time")
-    private LocalDateTime backOfficeApprovalTime;
+    @Column(name = "branch_manager_assigned_time")
+    private LocalDateTime branchManagerAssignedTime;
 
+    @Column(name = "back_office_assigned_time")
+    private LocalDateTime backOfficeAssignedTime;
+
+    // Reference to Branch entity
+    @ManyToOne
+    @JoinColumn(name = "id_branch")
+    private Branch branch;
+
+    // In Application.java
+    public UUID getUserId() {
+        return customer.getUser().getIdUser();
+    }
+
+    public String getCustomerName() {
+        return customer.getUser().getName();
+    }
 }

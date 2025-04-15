@@ -17,6 +17,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     @Lock(LockModeType.OPTIMISTIC)
     @Query("SELECT e FROM Employee e WHERE e.id_employee = :id_employee")
     Optional<Employee> findByIdWithLock(@Param("id_employee") UUID id_employee);
+
     boolean existsByUser(User user);
 
+    // ✅ Correct: Fetch employee by the user's idUser field
+    Optional<Employee> findByUser_IdUser(UUID idUser);
 }
