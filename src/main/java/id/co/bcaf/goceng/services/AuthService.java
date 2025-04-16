@@ -26,7 +26,7 @@ public class AuthService {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private PasswordEncoder passwordEncoder; // ✅ Added for password hashing
+    private PasswordEncoder passwordEncoder;
 
     public AuthResponse authenticateUser(AuthRequest authRequest) {
         String email = authRequest.getEmail();
@@ -34,28 +34,21 @@ public class AuthService {
 
         logger.info("Attempting login for email: {}", email);
 
+        // Check if the user exists with the given email
         Optional<User> userOptional = userRepository.findByEmail(email);
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-            logger.info("User found: {}", user.getEmail());
-
-            logger.info("Raw Password: {}", password);
-            logger.info("Stored Hashed Password: {}", user.getPassword());
-
+            // Perform password matching
             if (passwordEncoder.matches(password, user.getPassword())) {
-                logger.info("Password matches. Generating token...");
+                logger.info("Login successful for email: {}", email);
                 String token = jwtUtil.generateToken(email);
                 return new AuthResponse(token);
-            } else {
-                logger.warn("Incorrect password for email: {}", email);
             }
-        } else {
-            logger.warn("User with email {} not found", email);
         }
 
-
-        // ✅ Throw exception for unauthorized access (instead of returning null)
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        // Always log an unauthorized error with a generic message to prevent revealing which part of login failed
+        logger.warn("Failed login attempt for email: {}", email);
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
     }
 }
