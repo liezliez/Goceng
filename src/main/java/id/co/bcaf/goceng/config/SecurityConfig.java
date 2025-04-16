@@ -30,7 +30,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
                                 "/users/**",
-                                "/employees/**"
+                                "/employees/**",
+                                "/api/landing/**"
                         ).permitAll()
 
                         .requestMatchers("/features", "/users").permitAll() // 🛑 Is this correct? Remove if not intended.

@@ -27,9 +27,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-
-
-
 @Component
 public class JwtFilter extends GenericFilterBean {
 
@@ -40,7 +37,9 @@ public class JwtFilter extends GenericFilterBean {
 
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
             "/api/v1/auth/login",
-            "/api/v1/auth/register"
+            "/api/v1/auth/register",
+            "/swagger-ui/",           // Allow swagger UI access
+            "/v3/api-docs/"           // Allow OpenAPI docs access
     );
 
     @Autowired
@@ -97,7 +96,7 @@ public class JwtFilter extends GenericFilterBean {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {
-            logger.error("Token error: {}", e.getMessage(), e);
+            logger.error("JWT Authentication error: {}", e.getMessage());
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
             return;
         }
@@ -106,6 +105,9 @@ public class JwtFilter extends GenericFilterBean {
     }
 
     private boolean isPublicEndpoint(String uri) {
-        return PUBLIC_ENDPOINTS.contains(uri) || uri.matches("^/users(/[^/]+)?$");
+        return PUBLIC_ENDPOINTS.stream().anyMatch(uri::startsWith)
+                || uri.matches("^/users(/[^/]+)?$")
+                || uri.startsWith("/api/landing");
     }
 }
+
