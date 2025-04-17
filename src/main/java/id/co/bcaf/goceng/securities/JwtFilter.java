@@ -75,7 +75,12 @@ public class JwtFilter extends GenericFilterBean {
 
         String token = authHeader.replaceFirst("(?i)^Bearer\\s+", "").trim();
 
+        // Debug log to check the token being processed
+        logger.info("Checking token: {}", token);
+
         if (blacklistedTokenRepository.existsByToken(token)) {
+            // Token is blacklisted
+            logger.warn("Token is blacklisted: {}", token);
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Blacklisted token");
             return;
         }
@@ -87,7 +92,7 @@ public class JwtFilter extends GenericFilterBean {
                 return;
             }
 
-            // ✅ Load the full User (with roles, etc.)
+            // Load the full User (with roles, etc.)
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
             UsernamePasswordAuthenticationToken authentication =

@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
+
+
 
 // Password reset
 import id.co.bcaf.goceng.services.PasswordResetService;
@@ -20,6 +23,7 @@ import java.time.ZoneId;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -91,17 +95,21 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
+        log.info("Logout called. Authorization header: {}", authHeader);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+            String token = authHeader.substring(7).trim();
+            log.info("Extracted token for blacklisting: {}", token);
 
             if (!jwtUtil.isTokenExpired(token)) {
                 BlacklistedToken blacklisted = new BlacklistedToken();
                 blacklisted.setToken(token);
                 blacklisted.setExpiryDate(
-                        jwtUtil.extractExpiration(token).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                        jwtUtil.extractExpiration(token).toInstant()
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime()
                 );
-                blacklistedTokenRepository.save(blacklisted);
+                blacklistedTokenRepository.saveAndFlush(blacklisted); // Combine save + flush
             }
         }
 

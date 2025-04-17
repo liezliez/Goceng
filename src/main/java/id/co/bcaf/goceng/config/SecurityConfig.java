@@ -9,11 +9,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
-//@EnableWebSecurity
+@EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
     private final JwtFilter jwtFilter;
 
     public SecurityConfig(JwtFilter jwtFilter) {
@@ -22,31 +28,39 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(csrf -> csrf.disable()) // ❌ Disable CSRF only for APIs
-                .authorizeHttpRequests(auth -> auth
-                        // 🔓 Publicly accessible endpoints
-                        .requestMatchers(
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/register",
-                                "/users/**",
-                                "/employees/**",
-                                "/api/landing/**"
-                        ).permitAll()
-
-                        .requestMatchers("/features", "/users").permitAll() // 🛑 Is this correct? Remove if not intended.
-
-                        // 🔒 Role-based access control (use hasAuthority if roles are stored without "ROLE_")
-//                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
-                        .requestMatchers("/branch/**").hasRole("BRANCH_MANAGER")
-                        .requestMatchers("/marketing/**").hasRole("MARKETING")
-                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
-
-                        // 🔒 Secure all other endpoints
-                        .anyRequest().authenticated()
+        http
+                // Configure CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Disable CSRF
+                .csrf(csrf -> csrf.disable())
+                // Authorization rules
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/v1/auth/**").permitAll()  // Allow public auth endpoints
+                        .anyRequest().authenticated()  // Require authentication for other endpoints
                 )
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+                // Stateless session management
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                // Add JWT filter
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
+
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:4200"));  // Make sure this is correct
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);  // Make sure this applies to all endpoints
+
+        return source;
+    }
+
 }
