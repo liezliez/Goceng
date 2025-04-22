@@ -35,32 +35,43 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 // Authorization rules
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/v1/auth/**").permitAll()  // Allow public auth endpoints
-                        .anyRequest().authenticated()  // Require authentication for other endpoints
+                        // Public endpoints that are accessible to anyone
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/users/register", "/users/whoami").permitAll()
+
+                        // Allow specific roles to access certain endpoints
+                        .requestMatchers("/users/role-back-office").hasRole("BACK_OFFICE")
+                        .requestMatchers("/users/role-branch-manager").hasRole("BRANCH_MANAGER")
+                        .requestMatchers("/users/role-marketing").hasRole("MARKETING")
+                        .requestMatchers("/users/role-customer").hasRole("CUSTOMER")
+
+                        // Allow super admins to access user management or any other admin-specific routes
+                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
+
+                        // Require authentication for all other endpoints
+                        .anyRequest().authenticated()
                 )
-                // Stateless session management
+                // Stateless session management (using JWT, no session stored)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // Add JWT filter
+                // Add JWT filter to intercept requests before authentication
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));  // Make sure this is correct
+        // Ensure correct origin URL (adjust this if needed)
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(true); // Allow credentials to be sent with CORS requests
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);  // Make sure this applies to all endpoints
+        source.registerCorsConfiguration("/**", config);  // Apply CORS to all endpoints
 
         return source;
     }
-
 }

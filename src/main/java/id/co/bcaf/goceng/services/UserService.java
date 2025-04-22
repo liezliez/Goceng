@@ -1,5 +1,6 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.dto.UserRequest;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.models.Role;
@@ -43,7 +44,7 @@ public class UserService {
     }
 
     // Get a user by their UUID (only ADMIN, BRANCH_MANAGER, BACK_OFFICE can access)
-    @PreAuthorize("hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
+    @PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
     public Optional<User> getUserById(UUID id) {
         return userRepository.findById(id);
     }
@@ -66,7 +67,6 @@ public class UserService {
 
         return userRepository.save(user);
     }
-
 
     // Create a new user
     public User createUser(User user, UUID branchId) {
@@ -143,4 +143,49 @@ public class UserService {
         return branchRepository.findById(branchId)
                 .orElseThrow(() -> new RuntimeException("Branch with ID " + branchId + " not found"));
     }
+
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    public User createUserFromRequest(UserRequest request) {
+        Role role = getRoleById(request.getIdRole()); // Now int
+        Branch branch = getBranchById(request.getIdBranch());
+
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setAccountStatus(
+                request.getAccount_status() != null ? request.getAccount_status() : AccountStatus.ACTIVE
+        );
+        user.setRole(role);
+        user.setBranch(branch);
+
+        return userRepository.save(user);
+    }
+
+    // ✅ Update user from DTO (for Superadmin use)
+    @PreAuthorize("hasRole('ROLE_SUPERADMIN')")
+    public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {
+        return userRepository.findById(id).map(user -> {
+            if (request.getName() != null) user.setName(request.getName());
+            if (request.getEmail() != null) user.setEmail(request.getEmail());
+            if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+            }
+            if (request.getAccount_status() != null) {
+                user.setAccountStatus(request.getAccount_status());
+            }
+            if (request.getIdRole() != null) {
+                Role role = getRoleById(request.getIdRole());
+                user.setRole(role);
+
+            }
+            if (request.getIdBranch() != null) {
+                Branch branch = getBranchById(request.getIdBranch());
+                user.setBranch(branch);
+            }
+
+            return userRepository.save(user);
+        });
+    }
+
 }

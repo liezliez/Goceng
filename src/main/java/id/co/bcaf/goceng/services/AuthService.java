@@ -34,26 +34,22 @@ public class AuthService {
 
         logger.info("Attempting login for email: {}", email);
 
-
-        // Check if the user exists with the given email
         Optional<User> userOptional = userRepository.findByEmail(email);
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-            // Perform password matching
+
             if (passwordEncoder.matches(password, user.getPassword())) {
                 logger.info("Login successful for email: {}", email);
 
-                // Generate token
-                String token = jwtUtil.generateToken(email);
+                // 💎 Include role in JWT token
+                String roleName = user.getRole().getRole_name();
+                String token = jwtUtil.generateToken(email, roleName);
 
-                // Create AuthResponse with both token and username
-                return new AuthResponse(token, user.getUsername()); // Assuming 'username' is the field in your User entity
+                return new AuthResponse(token, user.getUsername());
             }
         }
 
-
-        // Always log an unauthorized error with a generic message to prevent revealing which part of login failed
         logger.warn("Failed login attempt for email: {}", email);
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
     }

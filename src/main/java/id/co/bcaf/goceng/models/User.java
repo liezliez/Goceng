@@ -1,8 +1,8 @@
 package id.co.bcaf.goceng.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import id.co.bcaf.goceng.enums.AccountStatus;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import id.co.bcaf.goceng.enums.AccountStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -43,10 +43,11 @@ public class User implements UserDetails {
 
     @ManyToOne
     @JoinColumn(name = "id_branch", nullable = true)
+    @JsonIgnore  // Prevent recursion with Branch
     private Branch branch;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonManagedReference  // Prevent recursion with Employee
     private Employee employee;
 
     // ✅ UserDetails implementation
@@ -54,7 +55,7 @@ public class User implements UserDetails {
     @Override
     @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singleton(() -> role.getRole_name()); // Assumes role.getName() returns something like "ROLE_MARKETING"
+        return Collections.singleton(() -> role.getRole_name());
     }
 
     @Override
@@ -89,7 +90,7 @@ public class User implements UserDetails {
 
     // Preventing infinite recursion during serialization
     @Override
-    @JsonManagedReference
+    @JsonIgnore
     public String toString() {
         return "User{idUser=" + idUser + ", name='" + name + "', email='" + email + "', accountStatus=" + accountStatus + ", role=" + role + '}';
     }

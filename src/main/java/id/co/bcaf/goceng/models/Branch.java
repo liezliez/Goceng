@@ -1,8 +1,11 @@
 package id.co.bcaf.goceng.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -37,4 +40,17 @@ public class Branch {
 
     @Column(nullable = false)
     private Double longitude;
+
+    // Assuming you might want to add relationships in the future:
+
+    // Example of one-to-many relationship to another branch (e.g., parent-child branches)
+    @OneToMany(mappedBy = "parentBranch")
+    @JsonManagedReference  // Prevent recursive serialization by marking this side as managed
+    private List<Branch> childBranches;
+
+    // Example of many-to-one relationship (e.g., branch manager or employee belongs to a branch)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    @JsonBackReference  // Prevent recursive serialization by marking this side as back
+    private Branch parentBranch;
 }

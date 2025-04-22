@@ -35,6 +35,10 @@ public class EmployeeService {
     @Autowired
     private BranchRepository branchRepository;
 
+    // ✅ Add this method to find employees by user ID
+    public Optional<Employee> findByUserId(UUID userId) {
+        return employeeRepository.findByUser_IdUser(userId); // This calls the method from EmployeeRepository
+    }
 
     @Transactional
     public Employee createEmployee(UUID id_user, Integer id_role) {
@@ -71,7 +75,6 @@ public class EmployeeService {
         return employeeRepository.save(employee);
     }
 
-
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();
     }
@@ -102,7 +105,6 @@ public class EmployeeService {
         });
     }
 
-
     @Transactional
     public boolean deleteEmployee(UUID id_employee) {
         return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
@@ -128,8 +130,6 @@ public class EmployeeService {
         }
         return employee.get();
     }
-
-
 
     private String generateRandomNIP() {
         return "NIP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();

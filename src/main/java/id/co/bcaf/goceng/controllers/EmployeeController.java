@@ -29,6 +29,15 @@ public class EmployeeController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    // ✅ Fetch employee by user ID
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Employee> getEmployeeByUserId(@PathVariable UUID userId) {
+        Optional<Employee> employee = employeeService.findByUserId(userId);
+        return employee
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     // ✅ Create Employee using id_user and id_role from body
     @PostMapping
     public ResponseEntity<?> createEmployee(@RequestBody CreateEmployeeRequest request) {
@@ -39,7 +48,7 @@ public class EmployeeController {
             );
             return ResponseEntity.ok(employee);
         } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
+            return ResponseEntity.badRequest().body("Error creating employee: " + ex.getMessage());
         }
     }
 
@@ -78,16 +87,16 @@ public class EmployeeController {
                 : ResponseEntity.notFound().build();
     }
 
+    // ✅ Restore Employee
     @PutMapping("/{id_employee}/restore")
     public ResponseEntity<Void> restoreEmployee(@PathVariable UUID id_employee) {
         boolean restored = employeeService.restoreEmployee(id_employee);
         return restored ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
+    // ✅ Handle Entity Not Found Exception
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<String> handleEntityNotFoundException(EntityNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
-
-
 }

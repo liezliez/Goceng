@@ -1,5 +1,6 @@
 package id.co.bcaf.goceng.controllers;
 
+import id.co.bcaf.goceng.dto.UserRequest;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.dto.RegisterRequest;
@@ -8,8 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,10 +25,39 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    // ✅ Get current authenticated user's info
+    @GetMapping("/whoami")
+    public ResponseEntity<User> whoAmI(Principal principal) {
+        log.info("Fetching current authenticated user: {}", principal.getName());
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+
+        Optional<User> user = userService.getUserByEmail(principal.getName());  // Assuming you have a method to fetch user by email
+        return user
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> {
+                    log.warn("User with email {} not found", principal.getName());
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+                });
+    }
+
+
+    // ✅ Test Access (For authentication verification)
+    @GetMapping("/test-access")
+    public ResponseEntity<?> testAccess(Principal principal) {
+        return ResponseEntity.ok("You are: " + principal.getName());
+    }
+
     // ✅ Public Registration (CUSTOMER only)
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody RegisterRequest request) {
+    public ResponseEntity<User> registerUser(@RequestBody @Validated RegisterRequest request) {
         log.info("Registering new customer: {}", request.getEmail());
+        // Add basic validation (e.g., check for empty fields) before proceeding
+        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
@@ -35,7 +67,7 @@ public class UserController {
     }
 
     // ✅ Get all users
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<User>> getAllUsers() {
         log.info("Fetching all users");
         return ResponseEntity.ok(userService.getAllUsers());
@@ -69,7 +101,7 @@ public class UserController {
     // ✅ Create a user (admin/internal use)
     @PostMapping
     public ResponseEntity<User> createUser(
-            @RequestBody User user,
+            @RequestBody @Validated User user,
             @RequestParam UUID branchId
     ) {
         log.info("Creating new user (internal): {}", user.getEmail());
@@ -79,9 +111,9 @@ public class UserController {
 
     // ✅ Update user
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody User user) {
+    public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserRequest request) {
         log.info("Updating user with ID: {}", id);
-        Optional<User> updatedUser = userService.updateUser(id, user);
+        Optional<User> updatedUser = userService.updateUserFromRequest(id, request);
         return updatedUser
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> {
@@ -109,10 +141,10 @@ public class UserController {
         log.info("Restoring user with ID: {}", id);
         boolean restored = userService.restoreUser(id);
         if (restored) {
-            return ResponseEntity.ok("User: restored to ACTIVE");
+            return ResponseEntity.ok("User restored to ACTIVE");
         } else {
             log.warn("User with ID {} not found or not in DELETED status", id);
-            return ResponseEntity.badRequest().body("User is not in DELETED status or does not exist.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User is not in DELETED status or does not exist.");
         }
     }
 }
