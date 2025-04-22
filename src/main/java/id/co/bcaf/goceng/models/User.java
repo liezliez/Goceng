@@ -94,4 +94,5 @@ public class User implements UserDetails {
     public String toString() {
         return "User{idUser=" + idUser + ", name='" + name + "', email='" + email + "', accountStatus=" + accountStatus + ", role=" + role + '}';
     }
+
 }

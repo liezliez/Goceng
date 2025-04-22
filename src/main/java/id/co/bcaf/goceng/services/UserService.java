@@ -32,10 +32,11 @@ public class UserService {
     }
 
     // Get all users (only ADMIN, BRANCH_MANAGER, BACK_OFFICE can access)
-    @PreAuthorize("hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
+    @PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+
 
     // Get users by account status
     @PreAuthorize("hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
@@ -44,7 +45,7 @@ public class UserService {
     }
 
     // Get a user by their UUID (only ADMIN, BRANCH_MANAGER, BACK_OFFICE can access)
-    @PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_SUPERADMIN') or hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
     public Optional<User> getUserById(UUID id) {
         return userRepository.findById(id);
     }
@@ -144,23 +145,6 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Branch with ID " + branchId + " not found"));
     }
 
-    @PreAuthorize("hasRole('SUPERADMIN')")
-    public User createUserFromRequest(UserRequest request) {
-        Role role = getRoleById(request.getIdRole()); // Now int
-        Branch branch = getBranchById(request.getIdBranch());
-
-        User user = new User();
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setAccountStatus(
-                request.getAccount_status() != null ? request.getAccount_status() : AccountStatus.ACTIVE
-        );
-        user.setRole(role);
-        user.setBranch(branch);
-
-        return userRepository.save(user);
-    }
 
     // ✅ Update user from DTO (for Superadmin use)
     @PreAuthorize("hasRole('ROLE_SUPERADMIN')")
@@ -187,5 +171,23 @@ public class UserService {
             return userRepository.save(user);
         });
     }
+
+//    @PreAuthorize("hasRole('SUPERADMIN')")
+//    public User createUserFromRequest(UserRequest request) {
+//        Role role = getRoleById(request.getIdRole()); // Now int
+//        Branch branch = getBranchById(request.getIdBranch());
+//
+//        User user = new User(request.getName(), request.getEmail(), request.getPassword());
+//        user.setName(request.getName());
+//        user.setEmail(request.getEmail());
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        user.setAccountStatus(
+//                request.getAccount_status() != null ? request.getAccount_status() : AccountStatus.ACTIVE
+//        );
+//        user.setRole(role);
+//        user.setBranch(branch);
+//
+//        return userRepository.save(user);
+//    }
 
 }

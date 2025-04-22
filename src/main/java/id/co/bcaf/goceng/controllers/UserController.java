@@ -8,6 +8,7 @@ import id.co.bcaf.goceng.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -28,123 +29,112 @@ public class UserController {
     // ✅ Get current authenticated user's info
     @GetMapping("/whoami")
     public ResponseEntity<User> whoAmI(Principal principal) {
-        log.info("Fetching current authenticated user: {}", principal.getName());
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        Optional<User> user = userService.getUserByEmail(principal.getName());  // Assuming you have a method to fetch user by email
-        return user
+        return userService.getUserByEmail(principal.getName())
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> {
-                    log.warn("User with email {} not found", principal.getName());
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-                });
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-
-    // ✅ Test Access (For authentication verification)
+    // ✅ Test Access
     @GetMapping("/test-access")
-    public ResponseEntity<?> testAccess(Principal principal) {
+    public ResponseEntity<String> testAccess(Principal principal) {
         return ResponseEntity.ok("You are: " + principal.getName());
     }
 
     // ✅ Public Registration (CUSTOMER only)
-    @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody @Validated RegisterRequest request) {
-        log.info("Registering new customer: {}", request.getEmail());
-        // Add basic validation (e.g., check for empty fields) before proceeding
-        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
-            return ResponseEntity.badRequest().body(null);
-        }
+    @PostMapping(
+            path = "/register",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
 
-        User user = new User();
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
-        User registeredUser = userService.registerUser(user, request.getBranchId());
-        return ResponseEntity.ok(registeredUser);
-    }
 
     // ✅ Get all users
     @GetMapping("/all")
     public ResponseEntity<List<User>> getAllUsers() {
-        log.info("Fetching all users");
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     // ✅ Get user by ID
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable UUID id) {
-        log.info("Fetching user with ID: {}", id);
         return userService.getUserById(id)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> {
-                    log.warn("User with ID {} not found", id);
-                    return ResponseEntity.notFound().build();
-                });
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // ✅ Get users by status
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<User>> getUsersByStatus(@PathVariable String status) {
+    public ResponseEntity<?> getUsersByStatus(@PathVariable String status) {
         try {
             AccountStatus accountStatus = AccountStatus.valueOf(status.toUpperCase());
-            log.info("Fetching users with status: {}", accountStatus);
             return ResponseEntity.ok(userService.getUsersByStatus(accountStatus));
         } catch (IllegalArgumentException e) {
             log.error("Invalid account status: {}", status);
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("Invalid account status value.");
         }
     }
 
-    // ✅ Create a user (admin/internal use)
-    @PostMapping
+    // ✅ Admin create user
+    @PostMapping(
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseEntity<User> createUser(
             @RequestBody @Validated User user,
             @RequestParam UUID branchId
     ) {
-        log.info("Creating new user (internal): {}", user.getEmail());
-        User createdUser = userService.createUser(user, branchId);
-        return ResponseEntity.ok(createdUser);
+        log.info("Creating user: {}", user.getEmail());
+        return ResponseEntity.ok(userService.createUser(user, branchId));
     }
 
     // ✅ Update user
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserRequest request) {
-        log.info("Updating user with ID: {}", id);
-        Optional<User> updatedUser = userService.updateUserFromRequest(id, request);
-        return updatedUser
+        return userService.updateUserFromRequest(id, request)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> {
-                    log.warn("User with ID {} not found for update", id);
-                    return ResponseEntity.notFound().build();
-                });
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // ✅ Soft delete user
     @PostMapping("/{id}/delete")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
-        log.info("Soft-deleting user with ID: {}", id);
-        boolean deleted = userService.deleteUser(id);
-        if (deleted) {
+        if (userService.deleteUser(id)) {
             return ResponseEntity.ok("User has been soft-deleted (status: DELETED)");
-        } else {
-            log.warn("User with ID {} not found for deletion", id);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
 
     // ✅ Restore user
     @PostMapping("/{id}/restore")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
-        log.info("Restoring user with ID: {}", id);
-        boolean restored = userService.restoreUser(id);
-        if (restored) {
+        if (userService.restoreUser(id)) {
             return ResponseEntity.ok("User restored to ACTIVE");
-        } else {
-            log.warn("User with ID {} not found or not in DELETED status", id);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User is not in DELETED status or does not exist.");
         }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("User is not in DELETED status or does not exist.");
     }
+
+
+//    public ResponseEntity<?> registerUser(@RequestBody @Validated RegisterRequest request) {
+//        log.info("Registering new customer: {}", request.getEmail());
+//
+//        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
+//            return ResponseEntity.badRequest().body("Missing required fields.");
+//        }
+//
+//        try {
+//            User registeredUser = userService.registerUser(
+//                    new User(request.getName(), request.getEmail(), request.getPassword()),
+//                    request.getBranchId()
+//            );
+//            return ResponseEntity.ok(registeredUser);
+//        } catch (Exception ex) {
+//            log.error("Error during registration: {}", ex.getMessage());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed.");
+//        }
+//    }
 }
