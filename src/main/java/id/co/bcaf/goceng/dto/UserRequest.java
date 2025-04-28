@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 public class UserRequest {
@@ -20,4 +22,7 @@ public class UserRequest {
     private String password;
 
     private AccountStatus account_status; // Enum
+
+    private Integer idRole; // Use Integer (nullable)
+    private UUID idBranch; // Use UUID for nullable branch ID
 }

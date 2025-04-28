@@ -9,11 +9,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
-//@EnableWebSecurity
-@EnableMethodSecurity
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)  // Ensure method-level security (enabling @PreAuthorize)
 public class SecurityConfig {
+
     private final JwtFilter jwtFilter;
 
     public SecurityConfig(JwtFilter jwtFilter) {
@@ -22,31 +28,50 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(csrf -> csrf.disable()) // ❌ Disable CSRF only for APIs
-                .authorizeHttpRequests(auth -> auth
-                        // 🔓 Publicly accessible endpoints
-                        .requestMatchers(
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/register",
-                                "/users/**",
-                                "/employees/**",
-                                "/api/landing/**"
-                        ).permitAll()
+        http
+                // Configure CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Disable CSRF
+                .csrf(csrf -> csrf.disable())
+                // Authorization rules
+                .authorizeHttpRequests(authz -> authz
+                        // Public endpoints that are accessible to anyone
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/users/register", "/users/whoami").permitAll()
 
-                        .requestMatchers("/features", "/users").permitAll() // 🛑 Is this correct? Remove if not intended.
+                        // Allow specific roles to access certain endpoints
+                        .requestMatchers("/users/role-back-office").hasRole("BACK_OFFICE")
+                        .requestMatchers("/users/role-branch-manager").hasRole("BRANCH_MANAGER")
+                        .requestMatchers("/users/role-marketing").hasRole("MARKETING")
+                        .requestMatchers("/users/role-customer").hasRole("CUSTOMER")
 
-                        // 🔒 Role-based access control (use hasAuthority if roles are stored without "ROLE_")
-//                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
-                        .requestMatchers("/branch/**").hasRole("BRANCH_MANAGER")
-                        .requestMatchers("/marketing/**").hasRole("MARKETING")
-                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
+                        // Allow super admins to access user management or any other admin-specific routes
+                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
 
-                        // 🔒 Secure all other endpoints
+                        // Require authentication for all other endpoints
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+                // Stateless session management (using JWT, no session stored)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                // Add JWT filter to intercept requests before authentication
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        // Ensure correct origin URL (adjust this if needed)
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true); // Allow credentials to be sent with CORS requests
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);  // Apply CORS to all endpoints
+
+        return source;
     }
 }

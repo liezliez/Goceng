@@ -1,12 +1,14 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.dto.UserRequest;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
-import id.co.bcaf.goceng.repositories.BranchRepository;  // Assuming you have a BranchRepository
+import id.co.bcaf.goceng.repositories.BranchRepository;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final BranchRepository branchRepository;  // Inject the BranchRepository
+    private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository, BranchRepository branchRepository, PasswordEncoder passwordEncoder) {
@@ -29,78 +31,88 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    // Get all users (only ADMIN, BRANCH_MANAGER, BACK_OFFICE can access)
+    @PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
+
+    // Get users by account status
+    @PreAuthorize("hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
     public List<User> getUsersByStatus(AccountStatus status) {
         return userRepository.findByAccountStatus(status);
     }
 
+    // Get a user by their UUID (only ADMIN, BRANCH_MANAGER, BACK_OFFICE can access)
+    @PreAuthorize("hasRole('ROLE_SUPERADMIN') or hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
     public Optional<User> getUserById(UUID id) {
         return userRepository.findById(id);
     }
 
+    // Get a user by email
+    @PreAuthorize("hasRole('ADMIN') or hasRole('BRANCH_MANAGER') or hasRole('BACK_OFFICE')")
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
+    // Register a new user
     public User registerUser(User user, UUID branchId) {
-        Role defaultRole = roleRepository.findById(2)
-                .orElseThrow(() -> new RuntimeException("Default role CUSTOMER not found"));
-
-        Branch branch = branchRepository.findById(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+        Role defaultRole = getRoleById(2); // Default role as 'CUSTOMER' (id_role = 2)
+        Branch branch = getBranchById(branchId);
 
         user.setRole(defaultRole);
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setBranch(branch);  // Assign the branch to the user
+        user.setBranch(branch);
 
         return userRepository.save(user);
     }
 
+    // Create a new user
     public User createUser(User user, UUID branchId) {
-        // Fetch the role
-        Role role = roleRepository.findById(user.getRole().getId_role())
-                .orElseThrow(() -> new RuntimeException("Role not found"));
-
-        // Fetch the branch
-        Branch branch = branchRepository.findById(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+        Role role = getRoleById(user.getRole().getIdRole());
+        Branch branch = getBranchById(branchId);
 
         user.setRole(role);
         user.setAccountStatus(AccountStatus.ACTIVE);
-        user.setBranch(branch);  // Assign the branch to the user
+        user.setBranch(branch);
 
         return saveUser(user);
     }
 
+    // Helper method to save a user
     private User saveUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
+    // Update a user's details
     public Optional<User> updateUser(UUID id, User userDetails) {
         return userRepository.findById(id).map(user -> {
             if (userDetails.getRole() != null) {
-                Role role = roleRepository.findById(userDetails.getRole().getId_role())
-                        .orElseThrow(() -> new RuntimeException("Role not found"));
+                Role role = getRoleById(userDetails.getRole().getIdRole());
                 user.setRole(role);
             }
+
             user.setEmail(userDetails.getEmail());
             user.setName(userDetails.getName());
+
             if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
                 user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
             }
+
             user.setAccountStatus(userDetails.getAccountStatus());
+
             if (userDetails.getBranch() != null) {
-                user.setBranch(userDetails.getBranch());  // Update the branch if provided
+                user.setBranch(userDetails.getBranch()); // Update the branch if provided
             }
+
             return userRepository.save(user);
         });
     }
 
+    // Soft delete a user (set status to DELETED)
     public boolean deleteUser(UUID id) {
         return userRepository.findById(id).map(user -> {
             user.setAccountStatus(AccountStatus.DELETED);
@@ -109,6 +121,7 @@ public class UserService {
         }).orElse(false);
     }
 
+    // Restore a deleted user (set status to ACTIVE)
     public boolean restoreUser(UUID id) {
         return userRepository.findById(id).map(user -> {
             if (user.getAccountStatus() == AccountStatus.DELETED) {
@@ -119,4 +132,62 @@ public class UserService {
             return false;
         }).orElse(false);
     }
+
+    // Fetch a Role by ID, or throw an exception if not found
+    private Role getRoleById(int roleId) {
+        return roleRepository.findById(roleId)
+                .orElseThrow(() -> new RuntimeException("Role with ID " + roleId + " not found"));
+    }
+
+    // Fetch a Branch by ID, or throw an exception if not found
+    private Branch getBranchById(UUID branchId) {
+        return branchRepository.findById(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch with ID " + branchId + " not found"));
+    }
+
+
+    // ✅ Update user from DTO (for Superadmin use)
+    @PreAuthorize("hasRole('ROLE_SUPERADMIN')")
+    public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {
+        return userRepository.findById(id).map(user -> {
+            if (request.getName() != null) user.setName(request.getName());
+            if (request.getEmail() != null) user.setEmail(request.getEmail());
+            if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+            }
+            if (request.getAccount_status() != null) {
+                user.setAccountStatus(request.getAccount_status());
+            }
+            if (request.getIdRole() != null) {
+                Role role = getRoleById(request.getIdRole());
+                user.setRole(role);
+
+            }
+            if (request.getIdBranch() != null) {
+                Branch branch = getBranchById(request.getIdBranch());
+                user.setBranch(branch);
+            }
+
+            return userRepository.save(user);
+        });
+    }
+
+//    @PreAuthorize("hasRole('SUPERADMIN')")
+//    public User createUserFromRequest(UserRequest request) {
+//        Role role = getRoleById(request.getIdRole()); // Now int
+//        Branch branch = getBranchById(request.getIdBranch());
+//
+//        User user = new User(request.getName(), request.getEmail(), request.getPassword());
+//        user.setName(request.getName());
+//        user.setEmail(request.getEmail());
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        user.setAccountStatus(
+//                request.getAccount_status() != null ? request.getAccount_status() : AccountStatus.ACTIVE
+//        );
+//        user.setRole(role);
+//        user.setBranch(branch);
+//
+//        return userRepository.save(user);
+//    }
+
 }

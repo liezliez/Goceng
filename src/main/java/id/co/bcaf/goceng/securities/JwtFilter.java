@@ -1,11 +1,16 @@
 package id.co.bcaf.goceng.securities;
 
 import id.co.bcaf.goceng.repositories.BlacklistedTokenRepository;
-import id.co.bcaf.goceng.models.User;
-import id.co.bcaf.goceng.repositories.UserRepository;
 import id.co.bcaf.goceng.utils.JwtUtil;
-import org.springframework.security.core.userdetails.UserDetailsService;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.GenericFilterBean;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,15 +18,6 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-//import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,6 +27,7 @@ import java.util.List;
 public class JwtFilter extends GenericFilterBean {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
+
     private final JwtUtil jwtUtil;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final UserDetailsServiceImpl userDetailsService;
@@ -38,8 +35,10 @@ public class JwtFilter extends GenericFilterBean {
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
             "/api/v1/auth/login",
             "/api/v1/auth/register",
-            "/swagger-ui/",           // Allow swagger UI access
-            "/v3/api-docs/"           // Allow OpenAPI docs access
+            "/users/register",
+            "/swagger-ui/",
+            "/v3/api-docs/",
+            "/users/whoami"
     );
 
     @Autowired
@@ -63,36 +62,40 @@ public class JwtFilter extends GenericFilterBean {
         String authHeader = httpRequest.getHeader("Authorization");
         String requestURI = httpRequest.getRequestURI();
 
+        // Skip public endpoints
         if (isPublicEndpoint(requestURI)) {
             chain.doFilter(request, response);
             return;
         }
 
+        // Process Authorization header and validate token
         if (authHeader == null || !authHeader.toLowerCase().startsWith("bearer ")) {
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid token");
             return;
         }
 
         String token = authHeader.replaceFirst("(?i)^Bearer\\s+", "").trim();
+        logger.info("Checking token: {}", token);
 
         if (blacklistedTokenRepository.existsByToken(token)) {
+            logger.warn("Token is blacklisted: {}", token);
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Blacklisted token");
             return;
         }
 
         try {
             String email = jwtUtil.extractEmail(token);
-            if (email == null || !jwtUtil.validateToken(token, email)) {
+            String role = jwtUtil.extractRole(token);
+
+            if (email == null || role == null || !jwtUtil.validateToken(token, email)) {
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;
             }
 
-            // ✅ Load the full User (with roles, etc.)
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
+            // Set Spring Security context with role
+            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
+                    new UsernamePasswordAuthenticationToken(email, null, Collections.singleton(authority));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {
@@ -105,9 +108,6 @@ public class JwtFilter extends GenericFilterBean {
     }
 
     private boolean isPublicEndpoint(String uri) {
-        return PUBLIC_ENDPOINTS.stream().anyMatch(uri::startsWith)
-                || uri.matches("^/users(/[^/]+)?$")
-                || uri.startsWith("/api/landing");
+        return PUBLIC_ENDPOINTS.stream().anyMatch(uri::startsWith);
     }
 }
-

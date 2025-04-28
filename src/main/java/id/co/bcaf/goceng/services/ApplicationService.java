@@ -112,7 +112,7 @@ public class ApplicationService {
             case BACK_OFFICE -> "ROLE_BACK_OFFICE";
         };
 
-        boolean hasRequiredRole = approver.getRole().getRole_name().equals(requiredRole);
+        boolean hasRequiredRole = approver.getRole().getRoleName().equals(requiredRole);
 
         if (!hasRequiredRole) {
             throw new SecurityException("You do not have the required role to approve this application. Required: " + requiredRole);

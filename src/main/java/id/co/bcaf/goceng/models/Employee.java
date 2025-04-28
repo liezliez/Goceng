@@ -1,6 +1,7 @@
 package id.co.bcaf.goceng.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import id.co.bcaf.goceng.enums.WorkStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -27,6 +28,7 @@ public class Employee {
 
     @ManyToOne
     @JoinColumn(name = "id_branch")
+    @JsonBackReference  // Prevent recursion with Branch (parent side)
     private Branch branch;
 
     @Enumerated(EnumType.STRING)
@@ -35,15 +37,15 @@ public class Employee {
 
     @OneToOne
     @JoinColumn(name = "id_user", nullable = false, unique = true)
+    @JsonBackReference  // Prevent recursion with User (back reference)
     private User user;
 
-    // Add this for optimistic locking
+    // Optimistic locking
     @Version
     private int version;
 
-    // Preventing infinite recursion during serialization
+    // Preventing infinite recursion during serialization with toString
     @Override
-    @JsonBackReference
     public String toString() {
         return "Employee{id_employee=" + id_employee + ", NIP='" + NIP + "', name='" + name + "', branch=" + branch + ", workStatus=" + workStatus + '}';
     }
