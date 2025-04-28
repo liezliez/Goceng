@@ -71,19 +71,16 @@ public class RoleFeatureService {
         if (!roleName.startsWith("ROLE_")) {
             roleName = "ROLE_" + roleName;
         }
-
         // Fetch the Role by roleName
         Optional<Role> roleOptional = roleRepository.findByRoleName(roleName);
         if (!roleOptional.isPresent()) {
             return false; // Role not found
         }
-
         // Fetch the Feature by featureName
         Optional<Feature> featureOptional = featureRepository.findByFeatureName(featureName);
         if (!featureOptional.isPresent()) {
             return false; // Feature not found
         }
-
         Role role = roleOptional.get();
         Feature feature = featureOptional.get();
 
@@ -98,12 +95,10 @@ public class RoleFeatureService {
 
     public boolean hasFeature(String roleName, String featureName) {
         System.out.println("Checking feature for role: " + roleName + ", feature: " + featureName);
-
         // Normalize roleName and featureName as needed
         if (!roleName.startsWith("ROLE_")) {
             roleName = "ROLE_" + roleName;
         }
-
         RoleFeature roleFeature = roleFeatureRepository.findByRoleRoleNameAndFeatureFeatureName(roleName, featureName);
         return roleFeature != null;
     }
