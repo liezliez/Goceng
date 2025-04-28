@@ -31,30 +31,24 @@ public class RoleFeatureService {
      * @return true if the feature was successfully added, false otherwise.
      */
     public boolean addFeatureToRole(String roleName, String featureName) {
-        // Normalize the roleName (ensure it starts with "ROLE_")
-        if (!roleName.startsWith("ROLE_")) {
-            roleName = "ROLE_" + roleName;
-        }
+        roleName = normalizeRoleName(roleName);
 
         // Fetch the Role by roleName
         Optional<Role> roleOptional = roleRepository.findByRoleName(roleName);
-        if (!roleOptional.isPresent()) {
+        if (roleOptional.isEmpty()) {
             return false; // Role not found
         }
 
         // Fetch the Feature by featureName
         Optional<Feature> featureOptional = featureRepository.findByFeatureName(featureName);
-        if (!featureOptional.isPresent()) {
+        if (featureOptional.isEmpty()) {
             return false; // Feature not found
         }
 
-        Role role = roleOptional.get();
-        Feature feature = featureOptional.get();
-
         // Create a new RoleFeature association and save it to the database
         RoleFeature roleFeature = new RoleFeature();
-        roleFeature.setRole(role);
-        roleFeature.setFeature(feature);
+        roleFeature.setRole(roleOptional.get());
+        roleFeature.setFeature(featureOptional.get());
         roleFeatureRepository.save(roleFeature);
         return true;
     }
@@ -67,20 +61,20 @@ public class RoleFeatureService {
      * @return true if the feature was successfully removed, false otherwise.
      */
     public boolean removeFeatureFromRole(String roleName, String featureName) {
-        // Normalize the roleName (ensure it starts with "ROLE_")
-        if (!roleName.startsWith("ROLE_")) {
-            roleName = "ROLE_" + roleName;
-        }
+        roleName = normalizeRoleName(roleName);
+
         // Fetch the Role by roleName
         Optional<Role> roleOptional = roleRepository.findByRoleName(roleName);
-        if (!roleOptional.isPresent()) {
+        if (roleOptional.isEmpty()) {
             return false; // Role not found
         }
+
         // Fetch the Feature by featureName
         Optional<Feature> featureOptional = featureRepository.findByFeatureName(featureName);
-        if (!featureOptional.isPresent()) {
+        if (featureOptional.isEmpty()) {
             return false; // Feature not found
         }
+
         Role role = roleOptional.get();
         Feature feature = featureOptional.get();
 
@@ -93,13 +87,31 @@ public class RoleFeatureService {
         return false; // RoleFeature association not found
     }
 
+    /**
+     * Checks if a role has a specific feature.
+     *
+     * @param roleName    The name of the role.
+     * @param featureName The name of the feature.
+     * @return true if the role has the feature, false otherwise.
+     */
     public boolean hasFeature(String roleName, String featureName) {
-        System.out.println("Checking feature for role: " + roleName + ", feature: " + featureName);
-        // Normalize roleName and featureName as needed
+        roleName = normalizeRoleName(roleName);
+
+        // Check if the RoleFeature association exists
+        RoleFeature roleFeature = roleFeatureRepository.findByRoleRoleNameAndFeatureFeatureName(roleName, featureName);
+        return roleFeature != null;
+    }
+
+    /**
+     * Normalize the role name to ensure it starts with "ROLE_".
+     *
+     * @param roleName The role name to normalize.
+     * @return The normalized role name.
+     */
+    private String normalizeRoleName(String roleName) {
         if (!roleName.startsWith("ROLE_")) {
             roleName = "ROLE_" + roleName;
         }
-        RoleFeature roleFeature = roleFeatureRepository.findByRoleRoleNameAndFeatureFeatureName(roleName, featureName);
-        return roleFeature != null;
+        return roleName;
     }
 }
