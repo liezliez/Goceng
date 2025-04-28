@@ -17,7 +17,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)  // Ensure method-level security (enabling @PreAuthorize)
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;

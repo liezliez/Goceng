@@ -4,12 +4,14 @@ import id.co.bcaf.goceng.dto.UserRequest;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.dto.RegisterRequest;
+import id.co.bcaf.goceng.securities.RolePermissionEvaluator;
 import id.co.bcaf.goceng.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +27,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private RolePermissionEvaluator rolePermissionEvaluator;
+
 
     // ✅ Get current authenticated user's info
     @GetMapping("/whoami")
@@ -99,18 +104,24 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ Soft delete user
+    // ============================== DELETE / RESTORE USER ================================================
+
+    // Soft delete user (only SUPERADMIN can do this)
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('DELETE_USER')")
     @PostMapping("/{id}/delete")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
+        // Your logic here
         if (userService.deleteUser(id)) {
             return ResponseEntity.ok("User has been soft-deleted (status: DELETED)");
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
 
-    // ✅ Restore user
+    // Restore user (only SUPERADMIN can do this)
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('RESTORE_USER')")
     @PostMapping("/{id}/restore")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
+        // Your logic here
         if (userService.restoreUser(id)) {
             return ResponseEntity.ok("User restored to ACTIVE");
         }
