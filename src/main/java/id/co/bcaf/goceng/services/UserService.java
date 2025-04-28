@@ -71,7 +71,7 @@ public class UserService {
 
     // Create a new user
     public User createUser(User user, UUID branchId) {
-        Role role = getRoleById(user.getRole().getId_role());
+        Role role = getRoleById(user.getRole().getIdRole());
         Branch branch = getBranchById(branchId);
 
         user.setRole(role);
@@ -91,7 +91,7 @@ public class UserService {
     public Optional<User> updateUser(UUID id, User userDetails) {
         return userRepository.findById(id).map(user -> {
             if (userDetails.getRole() != null) {
-                Role role = getRoleById(userDetails.getRole().getId_role());
+                Role role = getRoleById(userDetails.getRole().getIdRole());
                 user.setRole(role);
             }
 

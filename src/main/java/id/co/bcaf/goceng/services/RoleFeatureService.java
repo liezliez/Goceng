@@ -1,27 +1,20 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.RoleFeature;
 import id.co.bcaf.goceng.repositories.RoleFeatureRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class RoleFeatureService {
 
-    @Autowired
-    private RoleFeatureRepository roleFeatureRepository;
+    private final RoleFeatureRepository roleFeatureRepository;
 
-    public List<RoleFeature> getAllRoleFeatures() {
-        return roleFeatureRepository.findAll();
-    }
-
-    public RoleFeature getRoleFeatureById(Integer id) {
-        return roleFeatureRepository.findById(id).orElse(null);
-    }
-
-    public RoleFeature createRoleFeature(RoleFeature roleFeature) {
-        return roleFeatureRepository.save(roleFeature);
+    public List<RoleFeature> getFeaturesByRole(Role role) {
+        return roleFeatureRepository.findAllByRole(role);
     }
 }

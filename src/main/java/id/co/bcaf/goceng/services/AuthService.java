@@ -43,7 +43,7 @@ public class AuthService {
                 logger.info("Login successful for email: {}", email);
 
                 // 💎 Include role in JWT token
-                String roleName = user.getRole().getRole_name();
+                String roleName = user.getRole().getRoleName();
                 String token = jwtUtil.generateToken(email, roleName);
 
                 return new AuthResponse(token, user.getUsername());

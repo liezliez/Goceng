@@ -17,5 +17,5 @@ public class Feature {
     private Integer id_feature;
 
     @Column(nullable = false, unique = true, length = 100)
-    private String feature_name; // e.g., "VIEW_USERS", "EDIT_USERS"
+    private String featureName;
 }

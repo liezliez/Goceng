@@ -13,7 +13,7 @@ import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,36 +21,29 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class EmployeeService {
 
-    @Autowired
-    private EmployeeRepository employeeRepository;
+    private final EmployeeRepository employeeRepository;
+    private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
+    private final BranchRepository branchRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private BranchRepository branchRepository;
-
-    // ✅ Add this method to find employees by user ID
     public Optional<Employee> findByUserId(UUID userId) {
-        return employeeRepository.findByUser_IdUser(userId); // This calls the method from EmployeeRepository
+        return employeeRepository.findByUser_IdUser(userId);
     }
 
     @Transactional
     public Employee createEmployee(UUID id_user, Integer id_role) {
         User user = userRepository.findById(id_user)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id_user));
 
         if (employeeRepository.existsByUser(user)) {
-            throw new RuntimeException("Employee already exists for this user");
+            throw new IllegalStateException("Employee already exists for this user");
         }
 
         Role role = roleRepository.findById(id_role)
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Role not found with ID: " + id_role));
         user.setRole(role);
 
         if (user.getAccountStatus() == null) {
@@ -63,10 +56,9 @@ public class EmployeeService {
         employee.setUser(user);
         employee.setName(user.getName());
 
-        // ✅ Convert String to UUID and fetch Branch
         UUID branchId = UUID.fromString("42F47C49-01B9-423A-AA56-D160F8196641");
         Branch branch = branchRepository.findById(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found with ID: " + branchId));
         employee.setBranch(branch);
 
         employee.setWorkStatus(WorkStatus.ACTIVE);
@@ -91,10 +83,10 @@ public class EmployeeService {
             }
 
             if (request.getBranch() != null) {
-                UUID branchId = UUID.fromString(request.getBranch()); // convert string to UUID
+                UUID branchId = UUID.fromString(request.getBranch());
                 Branch branch = branchRepository.findById(branchId)
-                        .orElseThrow(() -> new RuntimeException("Branch not found"));
-                existingEmployee.setBranch(branch);  // set Branch object
+                        .orElseThrow(() -> new EntityNotFoundException("Branch not found with ID: " + branchId));
+                existingEmployee.setBranch(branch);
             }
 
             if (request.getWorkStatus() != null) {
@@ -124,11 +116,8 @@ public class EmployeeService {
     }
 
     public Employee findEmployeeById(UUID id) {
-        Optional<Employee> employee = employeeRepository.findById(id);
-        if (employee.isEmpty()) {
-            throw new EntityNotFoundException("Employee not found with ID: " + id);
-        }
-        return employee.get();
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found with ID: " + id));
     }
 
     private String generateRandomNIP() {

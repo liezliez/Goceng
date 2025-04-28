@@ -1,27 +1,26 @@
 package id.co.bcaf.goceng.controllers;
 
+import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.RoleFeature;
 import id.co.bcaf.goceng.services.RoleFeatureService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import id.co.bcaf.goceng.repositories.RoleRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/role-features")
+@RequestMapping("/api/v1/role-features")
+@RequiredArgsConstructor
 public class RoleFeatureController {
 
-    @Autowired
-    private RoleFeatureService roleFeatureService;
+    private final RoleFeatureService roleFeatureService;
+    private final RoleRepository roleRepository;
 
-    @GetMapping
-    public ResponseEntity<List<RoleFeature>> getAllRoleFeatures() {
-        return ResponseEntity.ok(roleFeatureService.getAllRoleFeatures());
-    }
-
-    @PostMapping
-    public ResponseEntity<RoleFeature> createRoleFeature(@RequestBody RoleFeature roleFeature) {
-        return ResponseEntity.ok(roleFeatureService.createRoleFeature(roleFeature));
+    @GetMapping("/{roleName}")
+    public List<RoleFeature> getRoleFeatures(@PathVariable String roleName) {
+        Role role = roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+        return roleFeatureService.getFeaturesByRole(role);
     }
 }
