@@ -60,6 +60,9 @@ public class JwtFilter extends GenericFilterBean {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         String requestURI = httpRequest.getRequestURI();
 
+        // Log if filter is called
+        logger.info("JwtFilter is called for URI: {}", requestURI);
+
         if (isPublicEndpoint(requestURI)) {
             chain.doFilter(request, response);
             return;
@@ -67,8 +70,9 @@ public class JwtFilter extends GenericFilterBean {
 
         try {
             String bearerToken = httpRequest.getHeader("Authorization");
+            logger.info("Authorization header: {}", bearerToken);
             String token = jwtUtil.extractToken(bearerToken);
-            logger.info("Checking token: {}", token);
+            logger.info("Extracted Token: {}", token);
 
             if (blacklistedTokenRepository.existsByToken(token)) {
                 logger.warn("Token is blacklisted: {}", token);
@@ -77,7 +81,13 @@ public class JwtFilter extends GenericFilterBean {
             }
 
             String email = jwtUtil.extractEmail(token);
+            logger.info("Extracted Email: {}", email);
+
             String role = jwtUtil.extractRole(token);
+            logger.info("Extracted Role: {}", role);
+
+            Date expiration = jwtUtil.getExpirationDateFromToken(token);
+            logger.info("Token Expiration Date: {}", expiration);
 
             if (email == null || role == null || !jwtUtil.validateToken(token, email)) {
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
@@ -85,7 +95,6 @@ public class JwtFilter extends GenericFilterBean {
             }
 
             // Additional expiration check (defensive)
-            Date expiration = jwtUtil.getExpirationDateFromToken(token);
             if (expiration.before(new Date())) {
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
                 return;
@@ -109,6 +118,7 @@ public class JwtFilter extends GenericFilterBean {
 
         chain.doFilter(request, response);
     }
+
 
     private boolean isPublicEndpoint(String uri) {
         return PUBLIC_ENDPOINTS.stream().anyMatch(uri::startsWith);
