@@ -9,7 +9,9 @@ import id.co.bcaf.goceng.repositories.FeatureRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class RoleFeatureService {
@@ -31,24 +33,18 @@ public class RoleFeatureService {
      * @return true if the feature was successfully added, false otherwise.
      */
     public boolean addFeatureToRole(String roleName, String featureName) {
-        roleName = normalizeRoleName(roleName);
+        Role role = findRole(roleName);
+        Feature feature = findFeature(featureName);
 
-        // Fetch the Role by roleName
-        Optional<Role> roleOptional = roleRepository.findByRoleName(roleName);
-        if (roleOptional.isEmpty()) {
-            return false; // Role not found
+        // Avoid creating duplicate RoleFeature associations
+        if (roleFeatureRepository.findByRoleAndFeature(role, feature).isPresent()) {
+            return false; // Feature already associated with role
         }
 
-        // Fetch the Feature by featureName
-        Optional<Feature> featureOptional = featureRepository.findByFeatureName(featureName);
-        if (featureOptional.isEmpty()) {
-            return false; // Feature not found
-        }
-
-        // Create a new RoleFeature association and save it to the database
+        // Create and save new RoleFeature association
         RoleFeature roleFeature = new RoleFeature();
-        roleFeature.setRole(roleOptional.get());
-        roleFeature.setFeature(featureOptional.get());
+        roleFeature.setRole(role);
+        roleFeature.setFeature(feature);
         roleFeatureRepository.save(roleFeature);
         return true;
     }
@@ -61,27 +57,12 @@ public class RoleFeatureService {
      * @return true if the feature was successfully removed, false otherwise.
      */
     public boolean removeFeatureFromRole(String roleName, String featureName) {
-        roleName = normalizeRoleName(roleName);
+        Role role = findRole(roleName);
+        Feature feature = findFeature(featureName);
 
-        // Fetch the Role by roleName
-        Optional<Role> roleOptional = roleRepository.findByRoleName(roleName);
-        if (roleOptional.isEmpty()) {
-            return false; // Role not found
-        }
-
-        // Fetch the Feature by featureName
-        Optional<Feature> featureOptional = featureRepository.findByFeatureName(featureName);
-        if (featureOptional.isEmpty()) {
-            return false; // Feature not found
-        }
-
-        Role role = roleOptional.get();
-        Feature feature = featureOptional.get();
-
-        // Delete the RoleFeature association from the database
-        RoleFeature roleFeature = roleFeatureRepository.findByRoleAndFeature(role, feature);
-        if (roleFeature != null) {
-            roleFeatureRepository.delete(roleFeature);
+        Optional<RoleFeature> roleFeatureOptional = Optional.ofNullable(roleFeatureRepository.findByRoleAndFeature(role, feature));
+        if (roleFeatureOptional.isPresent()) {
+            roleFeatureRepository.delete(roleFeatureOptional.get());
             return true;
         }
         return false; // RoleFeature association not found
@@ -95,11 +76,26 @@ public class RoleFeatureService {
      * @return true if the role has the feature, false otherwise.
      */
     public boolean hasFeature(String roleName, String featureName) {
-        roleName = normalizeRoleName(roleName);
+        Role role = findRole(roleName);
+        Feature feature = findFeature(featureName);
 
-        // Check if the RoleFeature association exists
-        RoleFeature roleFeature = roleFeatureRepository.findByRoleRoleNameAndFeatureFeatureName(roleName, featureName);
-        return roleFeature != null;
+        return roleFeatureRepository.findByRoleAndFeature(role, feature).isPresent();
+    }
+
+    /**
+     * Fetch all features associated with a specific role.
+     *
+     * @param roleName The name of the role.
+     * @return A list of feature names associated with the role.
+     */
+    public List<String> getFeaturesByRole(String roleName) {
+        Role role = findRole(roleName);
+
+        List<RoleFeature> roleFeatures = roleFeatureRepository.findByRole(role);
+
+        return roleFeatures.stream()
+                .map(roleFeature -> roleFeature.getFeature().getFeatureName())
+                .collect(Collectors.toList());
     }
 
     /**
@@ -109,9 +105,35 @@ public class RoleFeatureService {
      * @return The normalized role name.
      */
     private String normalizeRoleName(String roleName) {
-        if (!roleName.startsWith("ROLE_")) {
+        if (roleName.startsWith("ROLE_ROLE_")) {
+            roleName = roleName.substring(5);  // Remove the extra 'ROLE_' prefix
+        } else if (!roleName.startsWith("ROLE_")) {
             roleName = "ROLE_" + roleName;
         }
         return roleName;
+    }
+
+    /**
+     * Fetch a role by its name.
+     *
+     * @param roleName The name of the role to find.
+     * @return The role if found.
+     * @throws IllegalArgumentException if the role is not found.
+     */
+    private Role findRole(String roleName) {
+        return roleRepository.findByRoleName(normalizeRoleName(roleName))
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName));
+    }
+
+    /**
+     * Fetch a feature by its name.
+     *
+     * @param featureName The name of the feature to find.
+     * @return The feature if found.
+     * @throws IllegalArgumentException if the feature is not found.
+     */
+    private Feature findFeature(String featureName) {
+        return featureRepository.findByFeatureName(featureName)
+                .orElseThrow(() -> new IllegalArgumentException("Feature not found: " + featureName));
     }
 }
