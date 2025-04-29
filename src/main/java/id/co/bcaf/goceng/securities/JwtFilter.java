@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
@@ -21,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @Component
@@ -58,32 +58,24 @@ public class JwtFilter extends GenericFilterBean {
 
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
-
-        String authHeader = httpRequest.getHeader("Authorization");
         String requestURI = httpRequest.getRequestURI();
 
-        // Skip public endpoints
         if (isPublicEndpoint(requestURI)) {
             chain.doFilter(request, response);
             return;
         }
 
-        // Process Authorization header and validate token
-        if (authHeader == null || !authHeader.toLowerCase().startsWith("bearer ")) {
-            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid token");
-            return;
-        }
-
-        String token = authHeader.replaceFirst("(?i)^Bearer\\s+", "").trim();
-        logger.info("Checking token: {}", token);
-
-        if (blacklistedTokenRepository.existsByToken(token)) {
-            logger.warn("Token is blacklisted: {}", token);
-            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Blacklisted token");
-            return;
-        }
-
         try {
+            String bearerToken = httpRequest.getHeader("Authorization");
+            String token = jwtUtil.extractToken(bearerToken);
+            logger.info("Checking token: {}", token);
+
+            if (blacklistedTokenRepository.existsByToken(token)) {
+                logger.warn("Token is blacklisted: {}", token);
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Blacklisted token");
+                return;
+            }
+
             String email = jwtUtil.extractEmail(token);
             String role = jwtUtil.extractRole(token);
 
@@ -92,12 +84,23 @@ public class JwtFilter extends GenericFilterBean {
                 return;
             }
 
-            // Set Spring Security context with role
+            // Additional expiration check (defensive)
+            Date expiration = jwtUtil.getExpirationDateFromToken(token);
+            if (expiration.before(new Date())) {
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+                return;
+            }
+
+            // Set Spring Security context
             SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(email, null, Collections.singleton(authority));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid Bearer token: {}", e.getMessage());
+            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token format");
+            return;
         } catch (Exception e) {
             logger.error("JWT Authentication error: {}", e.getMessage());
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");

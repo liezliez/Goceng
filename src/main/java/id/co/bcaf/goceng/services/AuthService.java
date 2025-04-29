@@ -42,15 +42,19 @@ public class AuthService {
             if (passwordEncoder.matches(password, user.getPassword())) {
                 logger.info("Login successful for email: {}", email);
 
-                // 💎 Include role in JWT token
                 String roleName = user.getRole().getRoleName();
                 String token = jwtUtil.generateToken(email, roleName);
+                String refreshToken = jwtUtil.generateRefreshToken(email);
 
-                return new AuthResponse(token, user.getUsername());
+                // If you want expiration info:
+                Long expiresAt = jwtUtil.extractExpiration(token).getTimeInMillis();
+
+                return new AuthResponse(token, refreshToken, user.getUsername(), expiresAt);
             }
         }
 
         logger.warn("Failed login attempt for email: {}", email);
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
     }
+
 }
