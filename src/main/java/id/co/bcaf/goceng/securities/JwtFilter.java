@@ -26,7 +26,7 @@ import java.util.List;
 @Component
 public class JwtFilter extends GenericFilterBean {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
+    public static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
 
     private final JwtUtil jwtUtil;
     private final BlacklistedTokenRepository blacklistedTokenRepository;

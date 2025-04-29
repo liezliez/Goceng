@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static id.co.bcaf.goceng.securities.JwtFilter.logger;
+
 @Service
 public class RoleFeatureService {
 
@@ -104,8 +106,10 @@ public class RoleFeatureService {
      * Fetch a role by its name.
      */
     private Role findRole(String roleName) {
-        return roleRepository.findByRoleName(normalizeRoleName(roleName))
-                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName));
+        String normalizedRoleName = normalizeRoleName(roleName);
+        logger.info("Searching for role: {}", normalizedRoleName);
+        return roleRepository.findByRoleName(normalizedRoleName)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + normalizedRoleName));
     }
 
     /**
