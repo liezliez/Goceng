@@ -1,5 +1,8 @@
 package id.co.bcaf.goceng.dto;
 
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,7 +10,12 @@ import lombok.Setter;
 @Setter
 public class AuthRequest {
 
-    private String email;   // ✅ Renamed from "username" to "email"
+    @NotNull(message = "Email cannot be null")  // Ensure email is not null
+    @Email(message = "Please provide a valid email")  // Ensure email follows proper format
+    private String email;
+
+    @NotNull(message = "Password cannot be null")  // Ensure password is not null
+    @Size(min = 6, message = "Password must be at least 6 characters long")  // Ensure password is at least 6 characters
     private String password;
 
     public AuthRequest() {}

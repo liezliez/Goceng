@@ -23,4 +23,13 @@ public class RoleFeature {
     @ManyToOne
     @JoinColumn(name = "id_feature", nullable = false)
     private Feature feature;
+
+    /**
+     * Checks if both role and feature are present in this association.
+     *
+     * @return true if both role and feature are non-null, false otherwise.
+     */
+    public boolean isPresent() {
+        return role != null && feature != null;
+    }
 }

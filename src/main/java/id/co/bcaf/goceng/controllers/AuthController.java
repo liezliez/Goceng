@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.JwtException;
-
 import id.co.bcaf.goceng.services.PasswordResetService;
 
 import java.time.ZoneId;
@@ -50,8 +49,8 @@ public class AuthController {
     // Test the token
     @GetMapping("/test")
     public ResponseEntity<String> testToken(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7).trim();
+        String token = extractTokenFromHeader(authHeader);
+        if (token != null) {
             try {
                 String email = jwtUtil.extractEmail(token);
                 return ResponseEntity.ok("Email: " + email);
@@ -105,48 +104,54 @@ public class AuthController {
     // Logout and blacklist the token
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        log.info("Logout called. Authorization header: {}", authHeader);
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7).trim();
-            log.info("Extracted token for blacklisting: {}", token);
-
-            // Check if the token is expired or valid before processing
-            try {
-                if (jwtUtil.isTokenExpired(token)) {
-                    log.warn("Token is expired: {}", token);
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body("Token is expired. Please log in again.");
-                }
-
-                // If token is valid, blacklist it
-                BlacklistedToken blacklisted = new BlacklistedToken();
-                blacklisted.setToken(token);
-                blacklisted.setExpiryDate(
-                        jwtUtil.extractExpiration(token).toInstant()
-                                .atZone(ZoneId.systemDefault())
-                                .toLocalDateTime()
-                );
-                blacklistedTokenRepository.saveAndFlush(blacklisted); // Combine save + flush
-
-                log.info("Token has been blacklisted successfully.");
-                return ResponseEntity.ok("Logged out successfully and token has been blacklisted.");
-            } catch (ExpiredJwtException e) {
-                log.error("Expired token during logout", e);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token is expired.");
-            } catch (MalformedJwtException e) {
-                log.error("Malformed token during logout", e);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Malformed token.");
-            } catch (JwtException e) {
-                log.error("JWT exception during logout", e);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token.");
-            } catch (Exception e) {
-                log.error("Unexpected error during logout", e);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while logging out.");
-            }
+        String token = extractTokenFromHeader(request.getHeader("Authorization"));
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing or invalid Authorization header");
         }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing or invalid Authorization header");
+        try {
+            if (jwtUtil.isTokenExpired(token)) {
+                log.warn("Token is expired: {}", token);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Token is expired. Please log in again.");
+            }
+
+            // Check if the token is already blacklisted
+            if (blacklistedTokenRepository.existsByToken(token)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token has already been blacklisted.");
+            }
+
+            // Blacklist the token
+            BlacklistedToken blacklisted = new BlacklistedToken();
+            blacklisted.setToken(token);
+            blacklisted.setExpiryDate(
+                    jwtUtil.extractExpiration(token).toInstant()
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime()
+            );
+            blacklistedTokenRepository.saveAndFlush(blacklisted);
+
+            return ResponseEntity.ok("Logged out successfully and token has been blacklisted.");
+        } catch (ExpiredJwtException e) {
+            log.error("Expired token during logout", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token is expired.");
+        } catch (MalformedJwtException e) {
+            log.error("Malformed token during logout", e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Malformed token.");
+        } catch (JwtException e) {
+            log.error("JWT exception during logout", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token.");
+        } catch (Exception e) {
+            log.error("Unexpected error during logout", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while logging out.");
+        }
+    }
+
+    // Helper method for token extraction
+    private String extractTokenFromHeader(String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
+        return null;
     }
 }

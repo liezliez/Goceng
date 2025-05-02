@@ -13,10 +13,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class AuthService {
+
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
@@ -27,6 +29,9 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RoleFeatureService roleFeatureService; // Inject RoleFeatureService
 
     public AuthResponse authenticateUser(AuthRequest authRequest) {
         String email = authRequest.getEmail();
@@ -42,15 +47,24 @@ public class AuthService {
             if (passwordEncoder.matches(password, user.getPassword())) {
                 logger.info("Login successful for email: {}", email);
 
-                // 💎 Include role in JWT token
                 String roleName = user.getRole().getRoleName();
                 String token = jwtUtil.generateToken(email, roleName);
+                String refreshToken = jwtUtil.generateRefreshToken(email);
 
-                return new AuthResponse(token, user.getUsername());
+                // Optionally, if you want expiration information
+                Long expiresAt = jwtUtil.extractExpiration(token).getTimeInMillis();
+
+                // Fetch the features associated with the user's role !!!!!!!!
+                List<String> userFeatures = roleFeatureService.getFeaturesByRole(roleName);
+
+                return new AuthResponse(token, refreshToken, user.getUsername(), expiresAt, userFeatures);
+            } else {
+                logger.warn("Incorrect password for email: {}", email);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
             }
+        } else {
+            logger.warn("User not found for email: {}", email);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
         }
-
-        logger.warn("Failed login attempt for email: {}", email);
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
     }
 }
