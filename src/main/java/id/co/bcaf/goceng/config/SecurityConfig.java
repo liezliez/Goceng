@@ -4,16 +4,16 @@ import id.co.bcaf.goceng.securities.JwtFilter;
 import id.co.bcaf.goceng.securities.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -21,7 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
-@EnableMethodSecurity(prePostEnabled = true)  // Ensure method-level security (enabling @PreAuthorize)
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -35,32 +35,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Configure CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Disable CSRF
                 .csrf(csrf -> csrf.disable())
-                // Authorization rules
                 .authorizeHttpRequests(authz -> authz
-                        // Public endpoints that are accessible to anyone
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/users/register", "/users/whoami").permitAll()
+                        // Auth-related and public registration
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/users/register").permitAll()
 
-                        // Allow specific roles to access certain endpoints
-                        .requestMatchers("/users/role-back-office").hasRole("BACK_OFFICE")
-                        .requestMatchers("/users/role-branch-manager").hasRole("BRANCH_MANAGER")
-                        .requestMatchers("/users/role-marketing").hasRole("MARKETING")
-                        .requestMatchers("/users/role-customer").hasRole("CUSTOMER")
+                        // Authenticated but role-neutral access
+                        .requestMatchers("/users/whoami", "/users/test-access").authenticated()
 
-                        // Allow super admins to access user management or any other admin-specific routes
-                        .requestMatchers("/users/**").hasRole("SUPERADMIN")
+                        // Role-specific access (secured with @PreAuthorize in controller)
+                        .requestMatchers("/users/**").authenticated()
 
-                        // Require authentication for all other endpoints
+                        // Any other request
                         .anyRequest().authenticated()
                 )
-                // Stateless session management (using JWT, no session stored)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // Add JWT filter to intercept requests before authentication
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -68,15 +60,9 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder authenticationManagerBuilder =
-                http.getSharedObject(AuthenticationManagerBuilder.class);
-
-        // Use configure method to set up userDetailsService and password encoder
-        authenticationManagerBuilder
-                .userDetailsService(userDetailsService)
-                .passwordEncoder(passwordEncoder());
-
-        return authenticationManagerBuilder.build();
+        AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+        authBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+        return authBuilder.build();
     }
 
     @Bean
@@ -87,15 +73,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Ensure correct origin URL (adjust this if needed)
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of("http://localhost:4200")); // Adjust for deployed frontend
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // Allow credentials to be sent with CORS requests
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);  // Apply CORS to all endpoints
-
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }

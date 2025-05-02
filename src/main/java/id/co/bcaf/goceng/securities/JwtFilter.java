@@ -2,6 +2,12 @@ package id.co.bcaf.goceng.securities;
 
 import id.co.bcaf.goceng.repositories.BlacklistedTokenRepository;
 import id.co.bcaf.goceng.utils.JwtUtil;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,14 +15,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.GenericFilterBean;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -36,17 +36,17 @@ public class JwtFilter extends GenericFilterBean {
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/users/register",
-            "/swagger-ui/",
-            "/v3/api-docs/",
-            "/users/whoami"
+            "/users/whoami",
+            "/swagger-ui/**",
+            "/v3/api-docs/**"
     );
 
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
     @Autowired
-    public JwtFilter(
-            JwtUtil jwtUtil,
-            BlacklistedTokenRepository blacklistedTokenRepository,
-            UserDetailsServiceImpl userDetailsService
-    ) {
+    public JwtFilter(JwtUtil jwtUtil,
+                     BlacklistedTokenRepository blacklistedTokenRepository,
+                     UserDetailsServiceImpl userDetailsService) {
         this.jwtUtil = jwtUtil;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
         this.userDetailsService = userDetailsService;
@@ -60,8 +60,7 @@ public class JwtFilter extends GenericFilterBean {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         String requestURI = httpRequest.getRequestURI();
 
-        // Log if filter is called
-        logger.info("JwtFilter is called for URI: {}", requestURI);
+        logger.info("JWT Filter triggered for URI: {}", requestURI);
 
         if (isPublicEndpoint(requestURI)) {
             chain.doFilter(request, response);
@@ -70,48 +69,45 @@ public class JwtFilter extends GenericFilterBean {
 
         try {
             String bearerToken = httpRequest.getHeader("Authorization");
-            logger.info("Authorization header: {}", bearerToken);
+            if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
+                logger.warn("Missing or invalid Authorization header");
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
+                return;
+            }
+
             String token = jwtUtil.extractToken(bearerToken);
             logger.info("Extracted Token: {}", token);
 
             if (blacklistedTokenRepository.existsByToken(token)) {
-                logger.warn("Token is blacklisted: {}", token);
+                logger.warn("Blacklisted token: {}", token);
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Blacklisted token");
                 return;
             }
 
             String email = jwtUtil.extractEmail(token);
-            logger.info("Extracted Email: {}", email);
-
             String role = jwtUtil.extractRole(token);
-            logger.info("Extracted Role: {}", role);
-
             Date expiration = jwtUtil.getExpirationDateFromToken(token);
-            logger.info("Token Expiration Date: {}", expiration);
 
-            if (email == null || role == null || !jwtUtil.validateToken(token, email)) {
+            if (email == null || role == null || expiration == null || !jwtUtil.validateToken(token, email)) {
+                logger.warn("Invalid token: email={}, role={}, expiration={}", email, role, expiration);
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;
             }
 
-            // Additional expiration check (defensive)
             if (expiration.before(new Date())) {
+                logger.warn("Token expired at {}", expiration);
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
                 return;
             }
 
-            // Set Spring Security context
+            // Set Spring Security authentication
             SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(email, null, Collections.singleton(authority));
+                    new UsernamePasswordAuthenticationToken(email, null, Collections.singletonList(authority));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        } catch (IllegalArgumentException e) {
-            logger.error("Invalid Bearer token: {}", e.getMessage());
-            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token format");
-            return;
         } catch (Exception e) {
-            logger.error("JWT Authentication error: {}", e.getMessage());
+            logger.error("JWT authentication failed: {}", e.getMessage(), e);
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
             return;
         }
@@ -119,8 +115,7 @@ public class JwtFilter extends GenericFilterBean {
         chain.doFilter(request, response);
     }
 
-
     private boolean isPublicEndpoint(String uri) {
-        return PUBLIC_ENDPOINTS.stream().anyMatch(uri::startsWith);
+        return PUBLIC_ENDPOINTS.stream().anyMatch(pattern -> pathMatcher.match(pattern, uri));
     }
 }

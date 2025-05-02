@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -29,7 +28,6 @@ public class UserController {
     private UserService userService;
     @Autowired
     private RolePermissionEvaluator rolePermissionEvaluator;
-
 
     // ✅ Get current authenticated user's info
     @GetMapping("/whoami")
@@ -55,16 +53,35 @@ public class UserController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
+    public ResponseEntity<?> registerUser(@RequestBody @Validated RegisterRequest request) {
+        log.info("Registering new customer: {}", request.getEmail());
 
+        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
+            return ResponseEntity.badRequest().body("Missing required fields.");
+        }
+
+        try {
+            User newUser = new User();
+            newUser.setName(request.getName());
+            newUser.setEmail(request.getEmail());
+            newUser.setPassword(request.getPassword());
+
+            User registeredUser = userService.registerUser(newUser, request.getBranchId());
+            return ResponseEntity.ok(registeredUser);
+        } catch (Exception ex) {
+            log.error("Error during registration: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed.");
+        }
+    }
 
     // ✅ Get all users
-    @GetMapping("/all")
+    @GetMapping("/list")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     // ✅ Get user by ID
-    @GetMapping("/{id}")
+    @GetMapping("/id/{id}")
     public ResponseEntity<User> getUserById(@PathVariable UUID id) {
         return userService.getUserById(id)
                 .map(ResponseEntity::ok)
@@ -97,55 +114,31 @@ public class UserController {
     }
 
     // ✅ Update user
-    @PutMapping("/{id}")
+    @PutMapping("/id/{id}")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserRequest request) {
         return userService.updateUserFromRequest(id, request)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ============================== DELETE / RESTORE USER ================================================
-
-    // Soft delete user (only SUPERADMIN can do this)
+    // ✅ Soft delete user
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('DELETE_USER')")
-    @PostMapping("/{id}/delete")
+    @PostMapping("/id/{id}/delete")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
-        // Your logic here
         if (userService.deleteUser(id)) {
             return ResponseEntity.ok("User has been soft-deleted (status: DELETED)");
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
 
-    // Restore user (only SUPERADMIN can do this)
+    // ✅ Restore user
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('RESTORE_USER')")
-    @PostMapping("/{id}/restore")
+    @PostMapping("/id/{id}/restore")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
-        // Your logic here
         if (userService.restoreUser(id)) {
             return ResponseEntity.ok("User restored to ACTIVE");
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("User is not in DELETED status or does not exist.");
     }
-
-
-//    public ResponseEntity<?> registerUser(@RequestBody @Validated RegisterRequest request) {
-//        log.info("Registering new customer: {}", request.getEmail());
-//
-//        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
-//            return ResponseEntity.badRequest().body("Missing required fields.");
-//        }
-//
-//        try {
-//            User registeredUser = userService.registerUser(
-//                    new User(request.getName(), request.getEmail(), request.getPassword()),
-//                    request.getBranchId()
-//            );
-//            return ResponseEntity.ok(registeredUser);
-//        } catch (Exception ex) {
-//            log.error("Error during registration: {}", ex.getMessage());
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed.");
-//        }
-//    }
 }

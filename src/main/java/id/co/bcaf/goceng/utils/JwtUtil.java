@@ -17,7 +17,7 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private static final long CLOCK_SKEW_SECONDS = 300; // 5 minutes
+    private static final long CLOCK_SKEW_SECONDS = 30000; // 5 minutes
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
