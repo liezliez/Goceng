@@ -33,9 +33,9 @@ public class JwtFilter extends GenericFilterBean {
     private final UserDetailsServiceImpl userDetailsService;
 
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
-            "/users/register",
+            "/be/api/v1/auth/login",
+            "/be/api/v1/auth/register",
+            "/be/users/register",
             "/users/whoami",
             "/swagger-ui/**",
             "/v3/api-docs/**"
