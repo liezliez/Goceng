@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
                         // Auth-related and public registration
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/users/register").permitAll()
+                        .requestMatchers("/be/api/v1/auth/login", "/be/api/v1/auth/register", "/be/users/register").permitAll()
 
                         // Authenticated but role-neutral access
                         .requestMatchers("/users/whoami", "/users/test-access").authenticated()
