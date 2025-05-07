@@ -33,10 +33,10 @@ public class JwtFilter extends GenericFilterBean {
     private final UserDetailsServiceImpl userDetailsService;
 
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
-            "/be/api/v1/auth/login",
-            "/be/api/v1/auth/register",
+            "/be/auth/login",
+            "/be/auth/register",
             "/be/users/register",
-            "/users/whoami",
+//            "/users/whoami",
             "/swagger-ui/**",
             "/v3/api-docs/**"
     );
@@ -67,6 +67,7 @@ public class JwtFilter extends GenericFilterBean {
             return;
         }
 
+
         try {
             String bearerToken = httpRequest.getHeader("Authorization");
             if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
@@ -75,7 +76,15 @@ public class JwtFilter extends GenericFilterBean {
                 return;
             }
 
-            String token = jwtUtil.extractToken(bearerToken);
+            System.out.println("Auth Header: " + httpRequest.getHeader("Authorization"));
+            System.out.println("Token: " + jwtUtil.extractToken(bearerToken));
+            System.out.println("Email: " + jwtUtil.extractEmail(bearerToken));
+
+
+
+            // Extract and trim token
+            String token = bearerToken.substring(7).trim(); // skip "Bearer "
+
             logger.info("Extracted Token: {}", token);
 
             if (blacklistedTokenRepository.existsByToken(token)) {
