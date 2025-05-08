@@ -7,10 +7,7 @@ import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
-import id.co.bcaf.goceng.repositories.BranchRepository;
-import id.co.bcaf.goceng.repositories.EmployeeRepository;
-import id.co.bcaf.goceng.repositories.RoleRepository;
-import id.co.bcaf.goceng.repositories.UserRepository;
+import id.co.bcaf.goceng.repositories.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +25,8 @@ public class EmployeeService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final BranchRepository branchRepository;
+    private final CustomerRepository customerRepository;
+
 
     public Optional<Employee> findByUserId(UUID userId) {
         return employeeRepository.findByUser_IdUser(userId);
@@ -38,7 +37,11 @@ public class EmployeeService {
         User user = userRepository.findById(id_user)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id_user));
 
-        if (employeeRepository.existsByUser(user)) {
+        if (customerRepository.existsByUser_IdUser(id_user)) {
+            throw new IllegalStateException("User is already registered as a customer");
+        }
+
+        if (employeeRepository.existsByUser_IdUser(id_user)) {
             throw new IllegalStateException("Employee already exists for this user");
         }
 

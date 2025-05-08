@@ -1,7 +1,6 @@
 package id.co.bcaf.goceng.repositories;
 
 import id.co.bcaf.goceng.models.Employee;
-import id.co.bcaf.goceng.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -13,17 +12,17 @@ import java.util.UUID;
 
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
-
-    // ✅ Optimistic Locking for updates
     @Lock(LockModeType.OPTIMISTIC)
     @Query("SELECT e FROM Employee e WHERE e.id_employee = :id_employee")
     Optional<Employee> findByIdWithLock(@Param("id_employee") UUID id_employee);
 
-    boolean existsByUser(User user);
+    boolean existsByUser_IdUser(UUID idUser);
 
-    // ✅ Correct: Fetch employee by the user's idUser field
     Optional<Employee> findByUser_IdUser(UUID idUser);
 
     Optional<Employee> findTopByNIPStartingWithOrderByNIPDesc(String prefix);
 
+    // Find employee by user's email
+    @Query("SELECT e FROM Employee e WHERE e.user.email = :email")
+    Optional<Employee> findByUserEmail(@Param("email") String email);
 }

@@ -5,6 +5,7 @@ import id.co.bcaf.goceng.dto.CustomerResponse;
 import id.co.bcaf.goceng.models.Customer;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
+import id.co.bcaf.goceng.repositories.EmployeeRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,13 +20,18 @@ public class CustomerService {
 
     @Autowired
     private CustomerRepository customerRepository;
-
+    @Autowired
+    private EmployeeRepository employeeRepository;
     @Autowired
     private UserRepository userRepository;
 
     public CustomerResponse createCustomer(CustomerRequest request) {
         User user = userRepository.findById(UUID.fromString(request.getUserId()))
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (employeeRepository.existsByUser_IdUser(user.getIdUser())) {
+            throw new IllegalStateException("User is already registered as an employee");
+        }
 
         Customer customer = new Customer();
         customer.setUser(user);
@@ -45,6 +51,7 @@ public class CustomerService {
         Customer saved = customerRepository.save(customer);
         return mapToResponse(saved);
     }
+
 
     public List<CustomerResponse> getAllCustomers() {
         return customerRepository.findAll()

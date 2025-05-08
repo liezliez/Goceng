@@ -7,8 +7,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CustomerRepository extends JpaRepository<Customer, UUID> {
-    Optional<Customer> findByUserIdUser(UUID idUser);  // Find customer by user ID
 
-    // Add this new method to find by id_customer
-    Optional<Customer> findByIdCustomer(UUID idCustomer);  // Find customer by id_customer
+    Optional<Customer> findByUser_IdUser(UUID idUser);
+
+    boolean existsByUser_IdUser(UUID idUser);
+
+    Optional<Customer> findByIdCustomer(UUID idCustomer);
 }
