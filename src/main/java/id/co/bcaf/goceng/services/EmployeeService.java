@@ -62,7 +62,7 @@ public class EmployeeService {
         employee.setBranch(branch);
 
         employee.setWorkStatus(WorkStatus.ACTIVE);
-        employee.setNIP(generateRandomNIP());
+        employee.setNIP(generateNIP(role));
 
         return employeeRepository.save(employee);
     }
@@ -120,7 +120,29 @@ public class EmployeeService {
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found with ID: " + id));
     }
 
-    private String generateRandomNIP() {
-        return "NIP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    private String generateNIP(Role role) {
+        String year = String.valueOf(java.time.Year.now().getValue());
+        String roleCode = getRoleCode(role.getRoleName()); // example: ROLE_MARKETING -> MK
+        String prefix = year + roleCode;
+
+        Optional<Employee> lastEmployee = employeeRepository.findTopByNIPStartingWithOrderByNIPDesc(prefix);
+        int nextNumber = lastEmployee.map(e -> {
+            String nip = e.getNIP();
+            String numberPart = nip.substring(prefix.length());
+            return Integer.parseInt(numberPart) + 1;
+        }).orElse(1);
+
+        return String.format("%s%03d", prefix, nextNumber);
     }
+
+    private String getRoleCode(String roleName) {
+        return switch (roleName) {
+            case "ROLE_MARKETING" -> "MK";
+            case "ROLE_BRANCH_MANAGER" -> "BM";
+            case "ROLE_BACK_OFFICE" -> "BO";
+            case "ROLE_SUPERADMIN" -> "SA";
+            default -> "OT"; // Other
+        };
+    }
+
 }

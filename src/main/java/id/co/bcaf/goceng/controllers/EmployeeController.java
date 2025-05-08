@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/employees")
+@RequestMapping("/api/v1/employees")
 @RequiredArgsConstructor
 public class EmployeeController {
 
@@ -24,57 +24,54 @@ public class EmployeeController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<Employee> getEmployeeByUserId(@PathVariable UUID userId) {
-        return employeeService.findByUserId(userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     @PostMapping
-    public ResponseEntity<Employee> createEmployee(@RequestBody CreateEmployeeRequest request) {
+    public ResponseEntity<Employee> create(@RequestBody CreateEmployeeRequest request) {
         Employee employee = employeeService.createEmployee(request.getId_user(), request.getId_role());
         return ResponseEntity.status(HttpStatus.CREATED).body(employee);
     }
 
     @GetMapping
-    public ResponseEntity<List<Employee>> getAllEmployees() {
+    public ResponseEntity<List<Employee>> getAll() {
         return ResponseEntity.ok(employeeService.getAllEmployees());
     }
 
-    @GetMapping("/{id_employee}")
-    public ResponseEntity<Employee> getEmployeeById(@PathVariable UUID id_employee) {
-        return employeeService.getEmployeeById(id_employee)
+    @GetMapping("/{id}")
+    public ResponseEntity<Employee> getById(@PathVariable UUID id) {
+        return employeeService.getEmployeeById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id_employee}")
-    public ResponseEntity<Employee> updateEmployee(
-            @PathVariable UUID id_employee,
-            @RequestBody EmployeeUpdateRequest request
-    ) {
-        return employeeService.updateEmployee(id_employee, request)
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Employee> getByUserId(@PathVariable UUID userId) {
+        return employeeService.findByUserId(userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{id_employee}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable UUID id_employee) {
-        return employeeService.deleteEmployee(id_employee)
+    @PutMapping("/{id}")
+    public ResponseEntity<Employee> update(@PathVariable UUID id, @RequestBody EmployeeUpdateRequest request) {
+        return employeeService.updateEmployee(id, request)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        return employeeService.deleteEmployee(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
 
-    @PutMapping("/{id_employee}/restore")
-    public ResponseEntity<Void> restoreEmployee(@PathVariable UUID id_employee) {
-        return employeeService.restoreEmployee(id_employee)
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<Void> restore(@PathVariable UUID id) {
+        return employeeService.restoreEmployee(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<String> handleEntityNotFoundException(EntityNotFoundException ex) {
+    public ResponseEntity<String> handleEntityNotFound(EntityNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }

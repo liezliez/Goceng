@@ -23,4 +23,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
     // ✅ Correct: Fetch employee by the user's idUser field
     Optional<Employee> findByUser_IdUser(UUID idUser);
+
+    Optional<Employee> findTopByNIPStartingWithOrderByNIPDesc(String prefix);
+
 }
