@@ -14,15 +14,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.UUID;
 
 @Service
 public class PasswordResetService {
+
+    private static final int TOKEN_EXPIRY_MINUTES = 30;
+    private static final String SMTP_HOST = "smtp.mailtrap.io";
+    private static final int SMTP_PORT = 2525;
+    private static final String MAIL_FROM = "no-reply@goceng.co.id";
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
@@ -44,12 +49,14 @@ public class PasswordResetService {
 
     @Transactional
     public void sendResetEmail(String email) {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isEmpty()) {
-            throw new RuntimeException("User not found with this email");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
+
+        Optional<PasswordResetToken> existingToken = tokenRepository.findByUser(user);
+        if (existingToken.isPresent() && existingToken.get().getExpiryDate().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("A reset token has already been issued. Please check your email.");
         }
 
-        User user = optionalUser.get();
         tokenRepository.deleteByUser(user);
 
         String token = generateSecureToken();
@@ -57,59 +64,65 @@ public class PasswordResetService {
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUser(user);
-        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30));
+        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(TOKEN_EXPIRY_MINUTES));
         tokenRepository.save(resetToken);
 
         sendEmail(email, token);
     }
 
-
-
     @Transactional
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid reset token"));
+                .orElseThrow(() -> new EntityNotFoundException("Invalid reset token"));
 
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Reset token has expired");
+            throw new IllegalStateException("Reset token has expired");
         }
 
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        tokenRepository.deleteById(resetToken.getId()); // Safe delete by ID
+        tokenRepository.deleteById(resetToken.getId());
     }
 
     private void sendEmail(String to, String token) {
-        String subject = "Reset your password";
+        String subject = "Reset Your Password";
         String resetUrl = "http://localhost:8080/auth/reset-password?token=" + token;
-        String body = "Click the following link to reset your password: " + resetUrl;
+        String body = """
+                <html>
+                <body>
+                    <p>Dear User,</p>
+                    <p>To reset your password, click the link below:</p>
+                    <p><a href="%s">%s</a></p>
+                    <p>This link will expire in %d minutes.</p>
+                </body>
+                </html>
+                """.formatted(resetUrl, resetUrl, TOKEN_EXPIRY_MINUTES);
 
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.host", "smtp.mailtrap.io");
-        props.put("mail.smtp.port", "2525");
+        props.put("mail.smtp.host", SMTP_HOST);
+        props.put("mail.smtp.port", String.valueOf(SMTP_PORT));
 
         Session session = Session.getInstance(props, null);
+
         try {
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("no-reply@goceng.co.id"));
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(MAIL_FROM));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
             message.setSubject(subject);
-            message.setText(body);
+            message.setContent(body, "text/html; charset=utf-8");
 
             Transport.send(message, mailUsername, mailPassword);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send email", e);
+            throw new IllegalStateException("Failed to send reset email", e);
         }
     }
 
     private String generateSecureToken() {
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] tokenBytes = new byte[32]; // 256-bit token
-        secureRandom.nextBytes(tokenBytes);
+        byte[] tokenBytes = new byte[32];
+        new SecureRandom().nextBytes(tokenBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
     }
-
 }

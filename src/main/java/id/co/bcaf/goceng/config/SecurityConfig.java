@@ -38,8 +38,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
-                        // Auth-related and public registration
-                        .requestMatchers("/auth/login", "/auth/register", "/users/register").permitAll()
+                        // Auth-related and public registration, password reset
+                        .requestMatchers("/auth/login", "/auth/register", "/users/register", "/auth/forgot-password", "/auth/reset-password").permitAll()
 
                         // Authenticated but role-neutral access
                         .requestMatchers("/users/me", "/users/test-access").authenticated()
@@ -82,4 +82,5 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 }
