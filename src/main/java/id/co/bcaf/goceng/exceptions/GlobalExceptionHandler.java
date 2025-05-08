@@ -16,6 +16,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -54,4 +55,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiResponse<>(false, "Unexpected error: " + ex.getMessage(), null));
     }
+
+    @ExceptionHandler(UserNotAuthenticatedException.class)
+    public ResponseEntity<ApiResponse<String>> handleUserNotAuthenticated(UserNotAuthenticatedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleCustomerNotFound(CustomerNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(ApplicationAlreadyActiveException.class)
+    public ResponseEntity<ApiResponse<String>> handleApplicationAlreadyActive(ApplicationAlreadyActiveException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(BranchNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleBranchNotFound(BranchNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+
 }

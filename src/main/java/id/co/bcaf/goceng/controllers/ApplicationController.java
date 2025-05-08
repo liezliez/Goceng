@@ -3,11 +3,13 @@ package id.co.bcaf.goceng.controllers;
 import id.co.bcaf.goceng.dto.ApplicationRequest;
 import id.co.bcaf.goceng.dto.ApplicationResponse;
 import id.co.bcaf.goceng.services.ApplicationService;
+import id.co.bcaf.goceng.services.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -48,5 +50,27 @@ public class ApplicationController {
             @RequestParam boolean isApproved
     ) {
         return ResponseEntity.ok(applicationService.backOfficeApprove(id, isApproved));
+    }
+
+    // ✅ Get all applications
+    @GetMapping
+    public ResponseEntity<List<ApplicationResponse>> getAllApplications() {
+        return ResponseEntity.ok(applicationService.getAllApplications());
+    }
+
+    // ✅ Get application by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<ApplicationResponse> getApplicationById(@PathVariable UUID id) {
+        ApplicationResponse response = applicationService.getApplicationById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    // ✅ Reject application at any stage
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<ApplicationResponse> rejectApplication(
+            @PathVariable UUID id,
+            @RequestParam ApplicationService.ApprovalRole role
+    ) {
+        return ResponseEntity.ok(applicationService.rejectApplication(id, role));
     }
 }

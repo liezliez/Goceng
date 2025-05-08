@@ -3,6 +3,7 @@ package id.co.bcaf.goceng.services;
 import id.co.bcaf.goceng.dto.ApplicationRequest;
 import id.co.bcaf.goceng.dto.ApplicationResponse;
 import id.co.bcaf.goceng.enums.ApplicationStatus;
+import id.co.bcaf.goceng.exceptions.*;
 import id.co.bcaf.goceng.models.Application;
 import id.co.bcaf.goceng.models.Customer;
 import id.co.bcaf.goceng.models.Employee;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,13 +42,13 @@ public class ApplicationService {
         if (auth != null && auth.getPrincipal() instanceof User user) {
             return user;
         }
-        throw new IllegalStateException("User is not authenticated");
+        throw new UserNotAuthenticatedException("User is not authenticated");
     }
 
     @Transactional
     public ApplicationResponse create(ApplicationRequest req) {
         Customer customer = customerRepo.findByIdCustomer(req.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
 
         boolean hasPending = applicationRepo.existsByCustomerAndStatusIn(customer, List.of(
                 ApplicationStatus.PENDING_MARKETING,
@@ -55,12 +57,17 @@ public class ApplicationService {
         ));
 
         if (hasPending) {
-            throw new RuntimeException("Customer already has an active application");
+            throw new ApplicationAlreadyActiveException("Customer already has an active application");
         }
 
         Branch branch = branchRepo.findById(req.getBranchId())
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
 
+        Application app = buildNewApplication(req, customer, branch);
+        return convertToResponse(applicationRepo.save(app));
+    }
+
+    private Application buildNewApplication(ApplicationRequest req, Customer customer, Branch branch) {
         Application app = new Application();
         app.setCustomer(customer);
         app.setAmount(req.getAmount());
@@ -69,98 +76,127 @@ public class ApplicationService {
         app.setStatus(ApplicationStatus.PENDING_MARKETING);
         app.setCreatedAt(LocalDateTime.now());
         app.setUpdatedAt(LocalDateTime.now());
-
-        return convertToResponse(applicationRepo.save(app));
+        return app;
     }
 
     @Transactional
-    public ApplicationResponse marketingApprove(UUID id, boolean isApproved) {
-        return handleApproval(id, isApproved, ApplicationStatus.PENDING_MARKETING, ApplicationStatus.PENDING_BRANCH_MANAGER, ApprovalRole.MARKETING);
-    }
-
-    @Transactional
-    public ApplicationResponse branchManagerApprove(UUID id, boolean isApproved) {
-        return handleApproval(id, isApproved, ApplicationStatus.PENDING_BRANCH_MANAGER, ApplicationStatus.PENDING_BACK_OFFICE, ApprovalRole.BRANCH_MANAGER);
-    }
-
-    @Transactional
-    public ApplicationResponse backOfficeApprove(UUID id, boolean isApproved) {
-        return handleApproval(id, isApproved, ApplicationStatus.PENDING_BACK_OFFICE, ApplicationStatus.APPROVED, ApprovalRole.BACK_OFFICE);
-    }
-
-    private enum ApprovalRole {
-        MARKETING, BRANCH_MANAGER, BACK_OFFICE
-    }
-
-    @Transactional
-    public ApplicationResponse handleApproval(UUID id, boolean isApproved, ApplicationStatus currentStatus,
-                                              ApplicationStatus nextStatus, ApprovalRole role) {
-
+    public ApplicationResponse approveApplication(UUID id, boolean isApproved, ApplicationStatus currentStatus,
+                                                  ApplicationStatus nextStatus, ApprovalRole role) {
+        // Fetch the application by ID using the repository method
         Application app = applicationRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Application not found"));
+                .orElseThrow(() -> new ApplicationNotFoundException("Application not found")); // Throw exception if not found
 
-        if (app.getStatus() != currentStatus) {
-            throw new IllegalStateException("Application is not in the correct approval stage: " + currentStatus);
-        }
+        // Validate if the application is in the expected current status
+        validateCurrentStatus(app, currentStatus);
 
-        User approver = getCurrentUser();
+        User approver = getCurrentUser(); // Get the current user (approver)
 
-        // Role validation
-        String requiredRole = switch (role) {
-            case MARKETING -> "ROLE_MARKETING";
-            case BRANCH_MANAGER -> "ROLE_BRANCH_MANAGER";
-            case BACK_OFFICE -> "ROLE_BACK_OFFICE";
-        };
+        // Validate if the approver has permission to approve based on their role
+        validateRolePermission(role, approver);
 
-        boolean hasRequiredRole = approver.getRole().getRoleName().equals(requiredRole);
+        // Ensure approver is from the same branch as the application
+        validateBranch(approver, app);
 
-        if (!hasRequiredRole) {
-            throw new SecurityException("You do not have the required role to approve this application. Required: " + requiredRole);
-        }
-
-        Employee employee = employeeRepo.findByUser_IdUser(approver.getIdUser())
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-
-        if (!employee.getBranch().equals(app.getBranch())) {
-            throw new IllegalStateException("You are not authorized to approve this application from a different branch.");
-        }
-
+        // Set the approval fields (assign the approver and the time of assignment)
         setApprovalFields(app, approver, role);
 
-        String beforeStatus = app.getStatus().name();
+        // Update application status based on approval or rejection
+        updateApplicationStatus(app, isApproved, nextStatus, role);
 
-        if (isApproved) {
-            app.setStatus(nextStatus);
-        } else {
-            app.setStatus(getRejectedStatus(role));
-        }
+        // Log the approval/rejection action
+        logApplicationChange(app, approver, isApproved ? "APPROVE" : "REJECT", isApproved);
 
-        app.setUpdatedAt(LocalDateTime.now());
-
-        String afterStatus = app.getStatus().name();
-
-        // Determine the action for the log (APPROVE or REJECT)
-        String action = isApproved ? "APPROVE" : "REJECT";
-
-        // Log the application change (approval/rejection)
-        logApplicationChange(app.getId(), action, approver.getUsername(), beforeStatus, afterStatus,
-                isApproved ? "Application approved" : "Application rejected");
-
-        // Save the application (this should update the status in the database)
-        return convertToResponse(applicationRepo.save(app));
+        // Save the updated application and return the response
+        return convertToResponse(applicationRepo.save(app)); // Return the converted response
     }
 
-    private ApplicationStatus getRejectedStatus(ApprovalRole role) {
-        return switch (role) {
-            case MARKETING -> ApplicationStatus.REJECTED_MARKETING;
-            case BRANCH_MANAGER -> ApplicationStatus.REJECTED_BRANCH_MANAGER;
-            case BACK_OFFICE -> ApplicationStatus.REJECTED_BACK_OFFICE;
-        };
+
+
+//    private Application getApplicationById(UUID id) {
+//        return applicationRepo.findById(id)
+//                .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
+//    }
+
+    // Get all applications
+    public List<ApplicationResponse> getAllApplications() {
+        List<Application> applications = applicationRepo.findAll(); // Retrieve all applications
+        return applications.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList()); // Convert to response DTOs
+    }
+
+    // Get application by ID
+    public ApplicationResponse getApplicationById(UUID id) {
+        Application app = applicationRepo.findById(id) // Fetch the application using the repository
+                .orElseThrow(() -> new ApplicationNotFoundException("Application not found")); // Throw exception if not found
+        return convertToResponse(app); // Convert the application to response DTO
+    }
+
+
+    // Reject application at any stage
+    @Transactional
+    public ApplicationResponse rejectApplication(UUID id, ApprovalRole role) {
+        // Fetch the application by ID using the repository method
+        Application app = applicationRepo.findById(id)
+                .orElseThrow(() -> new ApplicationNotFoundException("Application not found")); // Throw exception if not found
+
+        User approver = getCurrentUser(); // Get the current user (approver)
+
+        // Validate if the approver has permission to reject based on their role
+        validateRolePermission(role, approver);
+
+        // Ensure approver is from the same branch as the application
+        validateBranch(approver, app);
+
+        // Get the rejected status based on the role
+        ApplicationStatus rejectedStatus = getRejectedStatus(role);
+
+        // Update the application status to the rejected status
+        app.setStatus(rejectedStatus);
+        app.setUpdatedAt(LocalDateTime.now()); // Update the timestamp
+
+        // Log the rejection action
+        logApplicationChange(app, approver, "REJECT", false);
+
+        // Save the updated application and return the response
+        return convertToResponse(applicationRepo.save(app)); // Return the converted response
+    }
+
+
+
+    private void validateCurrentStatus(Application app, ApplicationStatus expectedStatus) {
+        if (app.getStatus() != expectedStatus) {
+            throw new InvalidApplicationStatusException("Application is not in the correct approval stage: " + expectedStatus);
+        }
+    }
+
+    private void validateRolePermission(ApprovalRole role, User approver) {
+        String requiredRole = getRequiredRole(role);
+        if (!approver.getRole().getRoleName().equals(requiredRole)) {
+            throw new InsufficientPermissionsException("You do not have the required role to approve this application. Required: " + requiredRole);
+        }
+    }
+
+    private String getRequiredRole(ApprovalRole role) {
+        switch (role) {
+            case MARKETING: return "ROLE_MARKETING";
+            case BRANCH_MANAGER: return "ROLE_BRANCH_MANAGER";
+            case BACK_OFFICE: return "ROLE_BACK_OFFICE";
+            default: throw new IllegalArgumentException("Unknown role: " + role);
+        }
+    }
+
+    private void validateBranch(User approver, Application app) {
+        Employee employee = employeeRepo.findByUser_IdUser(approver.getIdUser())
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found"));
+
+        if (!employee.getBranch().equals(app.getBranch())) {
+            throw new UnauthorizedBranchException("You are not authorized to approve this application from a different branch.");
+        }
     }
 
     private void setApprovalFields(Application app, User approver, ApprovalRole role) {
         LocalDateTime now = LocalDateTime.now();
-
         switch (role) {
             case MARKETING -> {
                 app.setMarketingAssigned(approver);
@@ -176,6 +212,41 @@ public class ApplicationService {
             }
         }
     }
+
+    private void updateApplicationStatus(Application app, boolean isApproved, ApplicationStatus nextStatus, ApprovalRole role) {
+        if (isApproved) {
+            app.setStatus(nextStatus);
+        } else {
+            app.setStatus(getRejectedStatus(role));
+        }
+        app.setUpdatedAt(LocalDateTime.now());
+    }
+
+    private ApplicationStatus getRejectedStatus(ApprovalRole role) {
+        switch (role) {
+            case MARKETING: return ApplicationStatus.REJECTED_MARKETING;
+            case BRANCH_MANAGER: return ApplicationStatus.REJECTED_BRANCH_MANAGER;
+            case BACK_OFFICE: return ApplicationStatus.REJECTED_BACK_OFFICE;
+            default: throw new IllegalArgumentException("Unknown role: " + role);
+        }
+    }
+
+    private void logApplicationChange(Application app, User approver, String action, boolean isApproved) {
+        String beforeStatus = app.getStatus().name();
+        String afterStatus = app.getStatus().name();
+
+        ApplicationLog log = new ApplicationLog();
+        log.setApplicationId(app.getId());
+        log.setAction(action);
+        log.setChangedBy(approver.getUsername());
+        log.setTimestamp(LocalDateTime.now());
+        log.setBeforeStatus(beforeStatus);
+        log.setAfterStatus(afterStatus);
+        log.setDetails(isApproved ? "Application approved" : "Application rejected");
+
+        applicationLogRepository.save(log);
+    }
+
 
     private ApplicationResponse convertToResponse(Application app) {
         return ApplicationResponse.builder()
@@ -196,17 +267,42 @@ public class ApplicationService {
                 .build();
     }
 
-    private void logApplicationChange(UUID applicationId, String action, String changedBy, String beforeStatus, String afterStatus, String details) {
-        ApplicationLog log = new ApplicationLog();
-        log.setApplicationId(applicationId);
-        log.setAction(action);
-        log.setChangedBy(changedBy);
-        log.setTimestamp(LocalDateTime.now());
-        log.setBeforeStatus(beforeStatus);
-        log.setAfterStatus(afterStatus);
-        log.setDetails(details);
-
-        applicationLogRepository.save(log);
+    public enum ApprovalRole {
+        MARKETING, BRANCH_MANAGER, BACK_OFFICE
     }
+
+    // helper
+
+    public ApplicationResponse marketingApprove(UUID id, boolean isApproved) {
+        return approveApplication(
+                id,
+                isApproved,
+                ApplicationStatus.PENDING_MARKETING,
+                ApplicationStatus.PENDING_BRANCH_MANAGER,
+                ApprovalRole.MARKETING
+        );
+    }
+
+    public ApplicationResponse branchManagerApprove(UUID id, boolean isApproved) {
+        return approveApplication(
+                id,
+                isApproved,
+                ApplicationStatus.PENDING_BRANCH_MANAGER,
+                ApplicationStatus.PENDING_BACK_OFFICE,
+                ApprovalRole.BRANCH_MANAGER
+        );
+    }
+
+    public ApplicationResponse backOfficeApprove(UUID id, boolean isApproved) {
+        return approveApplication(
+                id,
+                isApproved,
+                ApplicationStatus.PENDING_BACK_OFFICE,
+                ApplicationStatus.APPROVED,
+                ApprovalRole.BACK_OFFICE
+        );
+    }
+
+
 
 }
