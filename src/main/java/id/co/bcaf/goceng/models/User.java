@@ -8,15 +8,17 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-@ToString
+@AllArgsConstructor
+@Builder
 public class User implements UserDetails {
 
     @Id
@@ -31,6 +33,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -42,15 +45,15 @@ public class User implements UserDetails {
     private Role role;
 
     @ManyToOne
-    @JoinColumn(name = "id_branch", nullable = true)
-    @JsonIgnore  // Prevent recursion with Branch
+    @JoinColumn(name = "id_branch")
+    @JsonIgnore
     private Branch branch;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference  // Prevent recursion with Employee
+    @JsonManagedReference
     private Employee employee;
 
-    // ✅ UserDetails implementation
+    // ✅ UserDetails Interface Implementation
 
     @Override
     @JsonIgnore
@@ -88,11 +91,26 @@ public class User implements UserDetails {
         return accountStatus == AccountStatus.ACTIVE;
     }
 
-    // Preventing infinite recursion during serialization
+    // ✅ Optional getter for generic status access
+    public AccountStatus getStatus() {
+        return accountStatus;
+    }
+
+    // ✅ Safer toString() to prevent recursion issues
     @Override
-    @JsonIgnore
     public String toString() {
-        return "User{idUser=" + idUser + ", name='" + name + "', email='" + email + "', accountStatus=" + accountStatus + ", role=" + role + '}';
+        return "User{" +
+                "idUser=" + idUser +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", accountStatus=" + accountStatus +
+                ", role=" + (role != null ? role.getRoleName() : null) +
+                '}';
+    }
+
+    @JsonIgnore
+    public boolean isDeleted() {
+        return accountStatus == AccountStatus.DELETED;
     }
 
 }

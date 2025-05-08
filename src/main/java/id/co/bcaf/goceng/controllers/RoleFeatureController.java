@@ -10,9 +10,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/role-features")
+@RequestMapping("/role-features")
 @RequiredArgsConstructor
 public class RoleFeatureController {
 
@@ -25,11 +26,14 @@ public class RoleFeatureController {
     @PostMapping("/add-feature")
     public ResponseEntity<String> addFeatureToRole(@RequestParam String roleName,
                                                    @RequestParam String featureName) {
-        boolean added = roleFeatureService.addFeatureToRole(roleName, featureName);
+        if (roleName.isEmpty() || featureName.isEmpty()) {
+            return ResponseEntity.badRequest().body("Role name and feature name must not be empty.");
+        }
 
+        boolean added = roleFeatureService.addFeatureToRole(roleName, featureName);
         return added
-                ? ResponseEntity.ok("Feature added to role successfully!")
-                : ResponseEntity.badRequest().body("Feature already associated with role or inputs are invalid.");
+                ? ResponseEntity.ok("Feature successfully added to role.")
+                : ResponseEntity.badRequest().body("Feature already associated with the role or invalid inputs.");
     }
 
     /**
@@ -38,11 +42,14 @@ public class RoleFeatureController {
     @DeleteMapping("/remove-feature")
     public ResponseEntity<String> removeFeatureFromRole(@RequestParam String roleName,
                                                         @RequestParam String featureName) {
-        boolean removed = roleFeatureService.removeFeatureFromRole(roleName, featureName);
+        if (roleName.isEmpty() || featureName.isEmpty()) {
+            return ResponseEntity.badRequest().body("Role name and feature name must not be empty.");
+        }
 
+        boolean removed = roleFeatureService.removeFeatureFromRole(roleName, featureName);
         return removed
-                ? ResponseEntity.ok("Feature removed from role successfully!")
-                : ResponseEntity.badRequest().body("Feature not associated with role or inputs are invalid.");
+                ? ResponseEntity.ok("Feature successfully removed from role.")
+                : ResponseEntity.badRequest().body("Feature not associated with the role or invalid inputs.");
     }
 
     /**
@@ -51,8 +58,11 @@ public class RoleFeatureController {
     @GetMapping("/has-feature")
     public ResponseEntity<String> hasFeature(@RequestParam String roleName,
                                              @RequestParam String featureName) {
-        boolean hasFeature = roleFeatureService.hasFeature(roleName, featureName);
+        if (roleName.isEmpty() || featureName.isEmpty()) {
+            return ResponseEntity.badRequest().body("Role name and feature name must not be empty.");
+        }
 
+        boolean hasFeature = roleFeatureService.hasFeature(roleName, featureName);
         return hasFeature
                 ? ResponseEntity.ok("Role has the feature.")
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("Role does not have the feature.");
@@ -63,29 +73,48 @@ public class RoleFeatureController {
      */
     @GetMapping("/features")
     public ResponseEntity<?> getFeaturesForCurrentUser() {
-        // Get current user's email
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (!(principal instanceof String email)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid user session.");
+        // Get current user's email from Security Context
+        String email = getCurrentUserEmail();
+        if (email == null)  {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authenticated.");
         }
 
         // Load user details and get role
-        UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(email);
-        String roleName = userDetails.getAuthorities().stream()
-                .findFirst()
-                .map(auth -> auth.getAuthority()) // Should be like "ROLE_ADMIN"
-                .orElse(null);
+        Optional<UserDetails> userDetails = getUserDetails(email);
+        if (userDetails.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+        }
 
+        String roleName = getRoleFromUserDetails(userDetails.get());
         if (roleName == null || roleName.isEmpty()) {
             return ResponseEntity.badRequest().body("No role associated with the user.");
         }
 
         List<String> features = roleFeatureService.getFeaturesByRole(roleName);
-
         if (features.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No features found for this role.");
         }
 
         return ResponseEntity.ok(features);
+    }
+
+    private String getCurrentUserEmail() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return principal instanceof String ? (String) principal : null;
+    }
+
+    private Optional<UserDetails> getUserDetails(String email) {
+        try {
+            return Optional.of(userDetailsServiceImpl.loadUserByUsername(email));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private String getRoleFromUserDetails(UserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", "")) // Remove "ROLE_" prefix for display
+                .orElse(null);
     }
 }

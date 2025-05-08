@@ -42,7 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/login", "/auth/register", "/users/register").permitAll()
 
                         // Authenticated but role-neutral access
-                        .requestMatchers("/users/whoami", "/users/test-access").authenticated()
+                        .requestMatchers("/users/me", "/users/test-access").authenticated()
 
                         // Role-specific access (secured with @PreAuthorize in controller)
                         .requestMatchers("/users/**").authenticated()

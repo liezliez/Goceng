@@ -50,6 +50,8 @@ public class AuthController {
     @GetMapping("/test")
     public ResponseEntity<String> testToken(@RequestHeader("Authorization") String authHeader) {
         String token = extractTokenFromHeader(authHeader);
+        log.info("RAW AUTH HEADER: '{}'", authHeader);
+        log.info("EXTRACTED TOKEN: '{}'", token);
         if (token != null) {
             try {
                 String email = jwtUtil.extractEmail(token);

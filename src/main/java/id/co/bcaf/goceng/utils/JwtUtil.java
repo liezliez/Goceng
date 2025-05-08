@@ -32,9 +32,9 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
-        byte[] decodedKey = Base64.getEncoder().encode(secret.getBytes());
-        this.secretKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA256");
+        this.secretKey = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
     }
+
 
     // 🔐 Generate Access Token with role
     public String generateToken(String email, String role) {

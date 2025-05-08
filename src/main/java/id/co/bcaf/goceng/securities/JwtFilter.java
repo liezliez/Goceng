@@ -12,21 +12,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
 @Component
 public class JwtFilter extends GenericFilterBean {
 
-    public static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
 
     private final JwtUtil jwtUtil;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
@@ -36,7 +35,6 @@ public class JwtFilter extends GenericFilterBean {
             "/be/auth/login",
             "/be/auth/register",
             "/be/users/register",
-//            "/users/whoami",
             "/swagger-ui/**",
             "/v3/api-docs/**"
     );
@@ -67,25 +65,23 @@ public class JwtFilter extends GenericFilterBean {
             return;
         }
 
-
         try {
             String bearerToken = httpRequest.getHeader("Authorization");
+
             if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
                 logger.warn("Missing or invalid Authorization header");
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
                 return;
             }
 
-            System.out.println("Auth Header: " + httpRequest.getHeader("Authorization"));
-            System.out.println("Token: " + jwtUtil.extractToken(bearerToken));
-            System.out.println("Email: " + jwtUtil.extractEmail(bearerToken));
-
-
-
-            // Extract and trim token
-            String token = bearerToken.substring(7).trim(); // skip "Bearer "
-
+            String token = bearerToken.substring(7).trim();
             logger.info("Extracted Token: {}", token);
+
+            if (token.isEmpty()) {
+                logger.warn("Token is empty after trimming");
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Empty token");
+                return;
+            }
 
             if (blacklistedTokenRepository.existsByToken(token)) {
                 logger.warn("Blacklisted token: {}", token);
@@ -94,11 +90,10 @@ public class JwtFilter extends GenericFilterBean {
             }
 
             String email = jwtUtil.extractEmail(token);
-            String role = jwtUtil.extractRole(token);
             Date expiration = jwtUtil.getExpirationDateFromToken(token);
 
-            if (email == null || role == null || expiration == null || !jwtUtil.validateToken(token, email)) {
-                logger.warn("Invalid token: email={}, role={}, expiration={}", email, role, expiration);
+            if (email == null || expiration == null || !jwtUtil.validateToken(token, email)) {
+                logger.warn("Invalid token: email={}, expiration={}", email, expiration);
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;
             }
@@ -109,10 +104,9 @@ public class JwtFilter extends GenericFilterBean {
                 return;
             }
 
-            // Set Spring Security authentication
-            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(email, null, Collections.singletonList(authority));
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {

@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class AuthService {
+public class    AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 

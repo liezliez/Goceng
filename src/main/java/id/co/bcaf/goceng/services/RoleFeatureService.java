@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static id.co.bcaf.goceng.securities.JwtFilter.logger;
+//import static id.co.bcaf.goceng.securities.JwtFilter.logger;
 
 @Service
 public class RoleFeatureService {
@@ -41,7 +41,7 @@ public class RoleFeatureService {
         Feature feature = findFeature(featureName);
 
         if (roleFeatureRepository.findByRoleAndFeature(role, feature).isPresent()) {
-            logger.info("Feature '{}' is already associated with role '{}'", featureName, roleName);
+//            logger.info("Feature '{}' is already associated with role '{}'", featureName, roleName);
             return false;
         }
 
@@ -50,7 +50,7 @@ public class RoleFeatureService {
         roleFeature.setFeature(feature);
         roleFeatureRepository.save(roleFeature);
 
-        logger.info("Feature '{}' added to role '{}'", featureName, roleName);
+//        logger.info("Feature '{}' added to role '{}'", featureName, roleName);
         return true;
     }
 
@@ -69,11 +69,11 @@ public class RoleFeatureService {
         Optional<RoleFeature> roleFeatureOptional = roleFeatureRepository.findByRoleAndFeature(role, feature);
         if (roleFeatureOptional.isPresent()) {
             roleFeatureRepository.delete(roleFeatureOptional.get());
-            logger.info("Feature '{}' removed from role '{}'", featureName, roleName);
+//            logger.info("Feature '{}' removed from role '{}'", featureName, roleName);
             return true;
         }
 
-        logger.warn("Feature '{}' not associated with role '{}'", featureName, roleName);
+//        logger.warn("Feature '{}' not associated with role '{}'", featureName, roleName);
         return false;
     }
 
@@ -134,7 +134,7 @@ public class RoleFeatureService {
      */
     private Role findRole(String roleName) {
         String normalized = normalizeRoleName(roleName);
-        logger.info("Looking up role: {}", normalized);
+//        logger.info("Looking up role: {}", normalized);
         return roleRepository.findByRoleName(normalized)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + normalized));
     }

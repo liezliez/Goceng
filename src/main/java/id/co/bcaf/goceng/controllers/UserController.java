@@ -1,23 +1,20 @@
 package id.co.bcaf.goceng.controllers;
 
+import id.co.bcaf.goceng.dto.RegisterRequest;
 import id.co.bcaf.goceng.dto.UserRequest;
+import id.co.bcaf.goceng.dto.UserResponse;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.User;
-import id.co.bcaf.goceng.dto.RegisterRequest;
-import id.co.bcaf.goceng.securities.RolePermissionEvaluator;
 import id.co.bcaf.goceng.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/users")
@@ -26,33 +23,33 @@ public class UserController {
 
     @Autowired
     private UserService userService;
-    @Autowired
-    private RolePermissionEvaluator rolePermissionEvaluator;
 
-    // ✅ Get current authenticated user's info
-    @GetMapping("/whoami")
-    public ResponseEntity<User> whoAmI(Principal principal) {
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getUserByPrincipal(Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         return userService.getUserByEmail(principal.getName())
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+                .map(user -> {
+                    UserResponse dto = new UserResponse();
+                    dto.setId(user.getIdUser());
+                    dto.setName(user.getName());
+                    dto.setEmail(user.getEmail());
+                    dto.setAccount_status(user.getStatus());
+                    dto.setRole(user.getRole().getRoleName());
+                    return ResponseEntity.ok(dto);
+                })
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    // ✅ Test Access
+
     @GetMapping("/test-access")
     public ResponseEntity<String> testAccess(Principal principal) {
         return ResponseEntity.ok("You are: " + principal.getName());
     }
 
-    // ✅ Public Registration (CUSTOMER only)
-    @PostMapping(
-            path = "/register",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody @Validated RegisterRequest request) {
         log.info("Registering new customer: {}", request.getEmail());
 
@@ -74,13 +71,11 @@ public class UserController {
         }
     }
 
-    // ✅ Get all users
     @GetMapping("/list")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // ✅ Get user by ID
     @GetMapping("/id/{id}")
     public ResponseEntity<User> getUserById(@PathVariable UUID id) {
         return userService.getUserById(id)
@@ -88,7 +83,13 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ Get users by status
+    @GetMapping("/email")
+    public ResponseEntity<User> getUserByEmail(@RequestParam String email) {
+        return userService.getUserByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getUsersByStatus(@PathVariable String status) {
         try {
@@ -100,20 +101,12 @@ public class UserController {
         }
     }
 
-    // ✅ Admin create user
-    @PostMapping(
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<User> createUser(
-            @RequestBody @Validated User user,
-            @RequestParam UUID branchId
-    ) {
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<User> createUser(@RequestBody @Validated User user, @RequestParam UUID branchId) {
         log.info("Creating user: {}", user.getEmail());
         return ResponseEntity.ok(userService.createUser(user, branchId));
     }
 
-    // ✅ Update user
     @PutMapping("/id/{id}")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserRequest request) {
         return userService.updateUserFromRequest(id, request)
@@ -121,7 +114,6 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ Soft delete user
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('DELETE_USER')")
     @PostMapping("/id/{id}/delete")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
@@ -131,7 +123,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
 
-    // ✅ Restore user
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('RESTORE_USER')")
     @PostMapping("/id/{id}/restore")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
@@ -140,5 +131,10 @@ public class UserController {
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("User is not in DELETED status or does not exist.");
+    }
+
+    @GetMapping("/count-by-status")
+    public ResponseEntity<Map<AccountStatus, Long>> countUsersByStatus() {
+        return ResponseEntity.ok(userService.countUsersGroupedByStatus());
     }
 }
