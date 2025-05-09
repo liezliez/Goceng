@@ -71,3 +71,7 @@ public class Application {
         return customer.getUser().getName();
     }
 }
+
+
+// Note dari Marketing, BM, BO
+// Bikin DTO untuk semua detail pengajuan (application)
