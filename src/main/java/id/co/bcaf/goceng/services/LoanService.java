@@ -27,7 +27,7 @@ public class LoanService {
     private final LoanLogRepository loanLogRepository;
 
     public Loan createLoanFromApprovedApplication(Application application, Customer customer, BigDecimal interestRate, int tenor) {
-        BigDecimal amount = application.getAmount(); // ✅ BigDecimal for amount
+        BigDecimal amount = application.getAmount();
         BigDecimal monthlyInstallment = calculateInstallment(amount, interestRate, tenor);
 
         Loan loan = Loan.builder()
@@ -38,15 +38,16 @@ public class LoanService {
                 .remainingPrincipal(amount)
                 .interestRate(interestRate)
                 .installment(monthlyInstallment)
-                .totalPaid(BigDecimal.ZERO) // Start with zero total paid
+                .totalPaid(BigDecimal.ZERO)
                 .disbursedAt(LocalDateTime.now())
-                .createdAt(LocalDateTime.now()) // Set createdAt
-                .updatedAt(LocalDateTime.now()) // Set updatedAt
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .status(Loan.LoanStatus.ACTIVE)
                 .build();
 
         return loanRepository.save(loan);
     }
+
 
     private BigDecimal calculateInstallment(BigDecimal principal, BigDecimal annualInterestRate, int tenorMonths) {
         BigDecimal monthlyInterest = annualInterestRate.divide(BigDecimal.valueOf(12), 2, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(100));
