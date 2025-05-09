@@ -11,6 +11,7 @@ import java.time.LocalDate;
 public class CustomerRequest {
     private String userId;
     private String nik;
+    private String name;
     private LocalDate dateOfBirth;
     private String placeOfBirth;
     private String telpNo;

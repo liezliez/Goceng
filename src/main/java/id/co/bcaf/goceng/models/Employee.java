@@ -19,7 +19,7 @@ public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id_employee;
+    private UUID id;
 
     @Column(nullable = false, unique = true)
     private String NIP;
@@ -47,6 +47,6 @@ public class Employee {
     // Preventing infinite recursion during serialization with toString
     @Override
     public String toString() {
-        return "Employee{id_employee=" + id_employee + ", NIP='" + NIP + "', name='" + name + "', branch=" + branch + ", workStatus=" + workStatus + '}';
+        return "Employee{id_employee=" + id + ", NIP='" + NIP + "', name='" + name + "', branch=" + branch + ", workStatus=" + workStatus + '}';
     }
 }

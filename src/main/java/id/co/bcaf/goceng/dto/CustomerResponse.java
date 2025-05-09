@@ -12,6 +12,7 @@ import java.util.UUID;
 public class CustomerResponse {
     private UUID idCustomer;
     private UUID idUser;
+    private String name;
     private String nik;
     private LocalDate dateOfBirth;
     private String placeOfBirth;

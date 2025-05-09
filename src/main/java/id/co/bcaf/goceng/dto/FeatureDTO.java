@@ -8,5 +8,5 @@ import lombok.*;
 @NoArgsConstructor
 public class FeatureDTO {
     private Integer id_feature;
-    private String feature_name;
+    private String featureName;
 }

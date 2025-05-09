@@ -17,8 +17,8 @@ public class Customer {
 
     @Id
     @GeneratedValue
-    @Column(name = "id_customer", updatable = false, nullable = false)
-    private UUID idCustomer;
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(name = "name", nullable = false)
     private String name;

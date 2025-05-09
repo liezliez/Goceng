@@ -12,9 +12,9 @@ import java.util.UUID;
 
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
+    @Query("SELECT e FROM Employee e WHERE e.id = :id")
     @Lock(LockModeType.OPTIMISTIC)
-    @Query("SELECT e FROM Employee e WHERE e.id_employee = :id_employee")
-    Optional<Employee> findByIdWithLock(@Param("id_employee") UUID id_employee);
+    Optional<Employee> findByIdWithLock(@Param("id") UUID id);
 
     boolean existsByUser_IdUser(UUID idUser);
 

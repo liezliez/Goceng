@@ -17,7 +17,7 @@ public class Loan {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id_loan")
+    @Column(name = "id")
     private UUID id;
 
     @ManyToOne
@@ -65,5 +65,17 @@ public class Loan {
     public enum LoanStatus {
         ACTIVE, PAID_OFF, DEFAULTED
     }
+
+    @PrePersist
+    public void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
 
 }

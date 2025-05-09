@@ -53,7 +53,7 @@ public class ApplicationService {
 
     @Transactional
     public ApplicationResponse create(ApplicationRequest req) {
-        Customer customer = customerRepo.findByIdCustomer(req.getCustomerId())
+        Customer customer = customerRepo.findById(req.getCustomerId())
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
 
         boolean hasPending = applicationRepo.existsByCustomerAndStatusIn(customer, List.of(
@@ -257,7 +257,7 @@ public class ApplicationService {
     private ApplicationResponse convertToResponse(Application app) {
         return ApplicationResponse.builder()
                 .id(app.getId())
-                .customerId(app.getCustomer().getIdCustomer())
+                .customerId(app.getCustomer().getId())
                 .customerName(app.getCustomer().getUser().getName())
                 .amount(app.getAmount())
                 .purpose(app.getPurpose())

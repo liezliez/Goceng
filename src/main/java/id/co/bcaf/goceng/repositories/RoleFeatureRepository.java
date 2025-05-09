@@ -18,6 +18,7 @@ public interface RoleFeatureRepository extends JpaRepository<RoleFeature, Long> 
     // Find all features associated with a specific role
     List<RoleFeature> findByRole(Role role);
 
+    // Find features by role name using a custom query
     @Query("SELECT rf.feature FROM RoleFeature rf WHERE rf.role.roleName = :roleName")
     List<Feature> findFeaturesByRoleRoleName(@Param("roleName") String roleName);
 

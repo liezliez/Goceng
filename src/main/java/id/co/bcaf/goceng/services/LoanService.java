@@ -4,6 +4,8 @@ import id.co.bcaf.goceng.exceptions.ResourceNotFoundException;
 import id.co.bcaf.goceng.models.Application;
 import id.co.bcaf.goceng.models.Loan;
 import id.co.bcaf.goceng.models.Customer;
+import id.co.bcaf.goceng.models.LoanLog;
+import id.co.bcaf.goceng.repositories.LoanLogRepository;
 import id.co.bcaf.goceng.repositories.LoanRepository;
 import id.co.bcaf.goceng.dto.LoanResponse;
 import id.co.bcaf.goceng.dto.LoanUpdateRequest;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -21,6 +24,7 @@ import java.util.UUID;
 public class LoanService {
 
     private final LoanRepository loanRepository;
+    private final LoanLogRepository loanLogRepository;
 
     public Loan createLoanFromApprovedApplication(Application application, Customer customer, BigDecimal interestRate, int tenor) {
         BigDecimal amount = application.getAmount(); // ✅ BigDecimal for amount
@@ -70,7 +74,7 @@ public class LoanService {
     private LoanResponse convertToResponse(Loan loan) {
         return LoanResponse.builder()
                 .id(loan.getId())
-                .customerId(loan.getCustomer().getIdCustomer())
+                .customerId(loan.getCustomer().getId())
                 .customerName(loan.getCustomer().getName()) // Access the name from Customer
                 .loanAmount(loan.getLoanAmount())
                 .tenor(loan.getTenor())
@@ -85,4 +89,41 @@ public class LoanService {
                 .updatedAt(loan.getUpdatedAt())
                 .build();
     }
+
+    public BigDecimal getTotalLoanForCustomer(UUID customerId) {
+        return loanRepository.sumTotalLoanAmountByCustomer(customerId).orElse(BigDecimal.ZERO);
+    }
+
+    public List<LoanResponse> getLoanHistoryForCustomer(UUID customerId) {
+        return loanRepository.findByCustomerId(customerId).stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
+    public List<LoanLog> getLoanLogs(UUID loanId) {
+        return loanLogRepository.findByLoanIdOrderByTimestampDesc(loanId);
+    }
+
+    private void logChange(Loan loan, String field, String oldVal, String newVal, String username) {
+        LoanLog log = LoanLog.builder()
+                .loan(loan)
+                .fieldName(field)
+                .oldValue(oldVal)
+                .newValue(newVal)
+                .action("UPDATE")
+                .timestamp(LocalDateTime.now())
+                .performedBy(username)
+                .build();
+
+        loanLogRepository.save(log);
+    }
+
+    public List<LoanResponse> searchLoans(UUID customerId, Loan.LoanStatus status, LocalDateTime fromDate, LocalDateTime toDate) {
+        List<Loan> loans = loanRepository.searchLoansWithFilters(customerId, status, fromDate, toDate);
+        return loans.stream().map(this::convertToResponse).toList();
+    }
+
+
+
+
 }

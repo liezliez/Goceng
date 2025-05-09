@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,6 +34,7 @@ public class CustomerService {
 
         Customer customer = new Customer();
         customer.setUser(user);
+        customer.setName(request.getName());  // Added name field
         customer.setNik(request.getNik());
         customer.setDateOfBirth(request.getDateOfBirth());
         customer.setPlaceOfBirth(request.getPlaceOfBirth());
@@ -51,7 +51,6 @@ public class CustomerService {
         Customer saved = customerRepository.save(customer);
         return mapToResponse(saved);
     }
-
 
     public List<CustomerResponse> getAllCustomers() {
         return customerRepository.findAll()
@@ -70,6 +69,7 @@ public class CustomerService {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
+        customer.setName(request.getName());  // Added name field
         customer.setNik(request.getNik());
         customer.setDateOfBirth(request.getDateOfBirth());
         customer.setPlaceOfBirth(request.getPlaceOfBirth());
@@ -95,7 +95,7 @@ public class CustomerService {
 
     private CustomerResponse mapToResponse(Customer customer) {
         CustomerResponse res = new CustomerResponse();
-        res.setIdCustomer(customer.getIdCustomer());
+        res.setIdCustomer(customer.getId());
         res.setIdUser(customer.getUser().getIdUser());
         res.setNik(customer.getNik());
         res.setDateOfBirth(customer.getDateOfBirth());
@@ -109,6 +109,7 @@ public class CustomerService {
         res.setEmergencyCall(customer.getEmergencyCall());
         res.setCreditLimit(customer.getCreditLimit());
         res.setAccountNo(customer.getAccountNo());
+        res.setName(customer.getName());  // Added name field to response
         return res;
     }
 }

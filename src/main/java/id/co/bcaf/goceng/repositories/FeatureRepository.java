@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface FeatureRepository extends JpaRepository<Feature, Integer> {
     Optional<Feature> findByFeatureName(String featureName);
+
 }
