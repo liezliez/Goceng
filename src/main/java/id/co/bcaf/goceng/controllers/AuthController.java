@@ -38,13 +38,29 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
         try {
+            // Authenticate user
             AuthResponse authResponse = authService.authenticateUser(authRequest);
+
+            // Check if the user is authenticated (after login)
+            boolean isAuthenticated = authService.isUserAuthenticated();
+            if (!isAuthenticated) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authenticated.");
+            }
+
+            // Log the authentication details
+            log.info("User authenticated successfully. Email: {}", authRequest.getEmail());
+            log.info("Authentication details: Token: {}", authResponse.getToken());
+            log.info("Token Type: Bearer");
+            log.info("Token Expiration: {}", jwtUtil.extractExpiration(authResponse.getToken()));
+
+            // Return auth response with token
             return ResponseEntity.ok(authResponse);
         } catch (Exception e) {
             log.error("Login failed for user: {}", authRequest.getEmail(), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials or authentication error.");
         }
     }
+
 
     // Test the token
     @GetMapping("/test")

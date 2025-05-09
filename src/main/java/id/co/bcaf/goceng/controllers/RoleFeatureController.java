@@ -2,6 +2,9 @@ package id.co.bcaf.goceng.controllers;
 
 import id.co.bcaf.goceng.services.RoleFeatureService;
 import id.co.bcaf.goceng.securities.UserDetailsServiceImpl;
+import id.co.bcaf.goceng.utils.JwtUtil;
+
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+
+import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 @RestController
 @RequestMapping("/role-features")
@@ -75,6 +80,7 @@ public class RoleFeatureController {
     public ResponseEntity<?> getFeaturesForCurrentUser() {
         // Get current user's email from Security Context
         String email = getCurrentUserEmail();
+
         if (email == null)  {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authenticated.");
         }

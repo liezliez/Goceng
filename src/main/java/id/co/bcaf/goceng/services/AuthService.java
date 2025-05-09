@@ -6,6 +6,8 @@ import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import id.co.bcaf.goceng.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -66,5 +68,10 @@ public class    AuthService {
             logger.warn("User not found for email: {}", email);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
         }
+    }
+
+    public boolean isUserAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated();
     }
 }

@@ -10,11 +10,7 @@ import id.co.bcaf.goceng.models.Employee;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.models.ApplicationLog;
-import id.co.bcaf.goceng.repositories.ApplicationRepository;
-import id.co.bcaf.goceng.repositories.CustomerRepository;
-import id.co.bcaf.goceng.repositories.EmployeeRepository;
-import id.co.bcaf.goceng.repositories.BranchRepository;
-import id.co.bcaf.goceng.repositories.ApplicationLogRepository;
+import id.co.bcaf.goceng.repositories.*;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +22,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -33,17 +31,25 @@ public class ApplicationService {
 
     private final ApplicationRepository applicationRepo;
     private final CustomerRepository customerRepo;
+    private final UserRepository userRepo;
     private final EmployeeRepository employeeRepo;
     private final BranchRepository branchRepo;
     private final ApplicationLogRepository applicationLogRepository;
+    private static final Logger logger = LoggerFactory.getLogger(ApplicationService.class); // replace with your actual class name
+
+
 
     private User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof User user) {
-            return user;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            String email = authentication.getName(); // This returns the email (username)
+            return userRepo.findByEmail(email)
+                    .orElseThrow(() -> new UserNotAuthenticatedException("User not found with email: " + email));
         }
+
         throw new UserNotAuthenticatedException("User is not authenticated");
     }
+
 
     @Transactional
     public ApplicationResponse create(ApplicationRequest req) {
