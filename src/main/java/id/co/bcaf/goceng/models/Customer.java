@@ -20,6 +20,9 @@ public class Customer {
     @Column(name = "id_customer", updatable = false, nullable = false)
     private UUID idCustomer;
 
+    @Column(name = "name", nullable = false)
+    private String name;
+
     @OneToOne
     @JoinColumn(name = "id_user", nullable = false, unique = true)
     private User user;

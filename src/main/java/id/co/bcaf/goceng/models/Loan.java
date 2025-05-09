@@ -1,0 +1,69 @@
+package id.co.bcaf.goceng.models;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = "loan")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Loan {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id_loan")
+    private UUID id;
+
+    @ManyToOne
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
+    @Column(name = "loan_amount", nullable = false)
+    private BigDecimal loanAmount;
+
+    @Column(nullable = false)
+    private Integer tenor;
+
+    @Column(nullable = false)
+    private BigDecimal installment;
+
+    // Add setter for interestRate
+    @Setter
+    @Column(nullable = false)
+    private BigDecimal interestRate; // Changed to BigDecimal
+
+    @Column(name = "remaining_tenor", nullable = false)
+    private Integer remainingTenor;
+
+    @Column(name = "remaining_principal", nullable = false)
+    private BigDecimal remainingPrincipal;
+
+    @Column(name = "total_paid", nullable = false)
+    private BigDecimal totalPaid = BigDecimal.ZERO;
+
+    @Column(name = "disbursed_at")
+    private LocalDateTime disbursedAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    // Add setter for updatedAt
+    @Setter
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private LoanStatus status;
+
+    public enum LoanStatus {
+        ACTIVE, PAID_OFF, DEFAULTED
+    }
+
+}
