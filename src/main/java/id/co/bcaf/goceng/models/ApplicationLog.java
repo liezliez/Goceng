@@ -8,12 +8,15 @@ import lombok.Builder;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import lombok.*;
+
 @Entity
 @Getter
 @Setter
 @Builder
+@AllArgsConstructor(access = AccessLevel.PUBLIC)
+@NoArgsConstructor
 public class ApplicationLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
@@ -22,7 +25,7 @@ public class ApplicationLog {
     private UUID applicationId;
 
     @Column(nullable = false)
-    private String action; // CREATE, UPDATE, APPROVE, etc.
+    private String action;
 
     @Column(nullable = false)
     private String changedBy;

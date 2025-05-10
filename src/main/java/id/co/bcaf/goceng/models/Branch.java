@@ -53,4 +53,7 @@ public class Branch {
     @JoinColumn(name = "parent_id")
     @JsonBackReference  // Prevent recursive serialization by marking this side as back
     private Branch parentBranch;
+
+    public Branch(UUID uuid, String jakartaPusat, String s, String jakarta, String dkiJakarta, double v, double v1) {
+    }
 }

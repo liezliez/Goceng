@@ -50,11 +50,20 @@ public class LoanService {
 
 
     private BigDecimal calculateInstallment(BigDecimal principal, BigDecimal annualInterestRate, int tenorMonths) {
-        BigDecimal monthlyInterest = annualInterestRate.divide(BigDecimal.valueOf(12), 2, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(100));
+        BigDecimal monthlyInterest = annualInterestRate.divide(BigDecimal.valueOf(12), 10, BigDecimal.ROUND_HALF_UP)
+                .divide(BigDecimal.valueOf(100), 10, BigDecimal.ROUND_HALF_UP);
+
+        if (monthlyInterest.compareTo(BigDecimal.ZERO) == 0) {
+            return principal.divide(BigDecimal.valueOf(tenorMonths), 2, BigDecimal.ROUND_HALF_UP);
+        }
+
+        BigDecimal onePlusR = BigDecimal.ONE.add(monthlyInterest);
+        BigDecimal denominator = BigDecimal.ONE.subtract(onePlusR.pow(-tenorMonths, java.math.MathContext.DECIMAL128));
         BigDecimal numerator = principal.multiply(monthlyInterest);
-        BigDecimal denominator = BigDecimal.ONE.subtract(BigDecimal.ONE.add(monthlyInterest).pow(-tenorMonths));
+
         return numerator.divide(denominator, 2, BigDecimal.ROUND_HALF_UP);
     }
+
 
     @Transactional
     public LoanResponse updateLoanPartially(UUID loanId, LoanUpdateRequest request) {

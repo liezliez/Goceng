@@ -23,7 +23,7 @@ public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id_user")
+    @Column(name = "id")
     private UUID idUser;
 
     @Column(nullable = false, length = 100)
@@ -52,6 +52,9 @@ public class User implements UserDetails {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
     private Employee employee;
+
+    public User(UUID uuid, String active, String mail, String wellington5, String $2a$10$lWw4y4z9aYLIcAMfJzSaeOKc2D8euLhTo5Jub6fOyOMTnum8PkIRy, Branch bandung, Role role) {
+    }
 
     // ✅ UserDetails Interface Implementation
 

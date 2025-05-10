@@ -94,11 +94,18 @@ public class ApplicationService {
         app.setStatus(isApproved ? nextStatus : getRejectedStatus(role));
         app.setUpdatedAt(LocalDateTime.now());
 
+
+
         if (isApproved && app.getStatus() == ApplicationStatus.APPROVED) {
-            Loan loan = loanService.createLoanFromApprovedApplication(
-                    app, app.getCustomer(), BigDecimal.valueOf(12), 12
-            );
-            logger.info("Loan created for application ID: {}", app.getId());
+            try {
+                Loan loan = loanService.createLoanFromApprovedApplication(
+                        app, app.getCustomer(), BigDecimal.valueOf(12), 12
+                );
+                logger.info("Loan created for application ID: {}", app.getId());
+            } catch (Exception e) {
+                logger.error("Failed to create loan for application ID {}: {}", app.getId(), e.getMessage(), e);
+                throw new RuntimeException("Loan creation failed: " + e.getMessage());
+            }
         }
 
         logApplicationChange(app, approver, isApproved ? "APPROVE" : "REJECT", isApproved);

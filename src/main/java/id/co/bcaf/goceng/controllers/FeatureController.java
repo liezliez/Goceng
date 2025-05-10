@@ -38,6 +38,7 @@ public class FeatureController {
                 .getAuthority();
 
         List<Feature> features = featureService.getFeaturesByRoleName(roleName);
+        System.out.println(roleName);
         return ResponseEntity.ok(features);
     }
 }
