@@ -35,6 +35,15 @@ public class Application {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    @Column(name = "interest_rate")
+    private BigDecimal interestRate;
+
+    @Column(name = "plafon_type")
+    private String plafonType;
+
+    @Column(name = "plafon_limit")
+    private BigDecimal plafonLimit;
+
     // Updated field names for clarity
     @ManyToOne
     @JoinColumn(name = "id_marketing_assigned")
@@ -56,6 +65,45 @@ public class Application {
 
     @Column(name = "back_office_assigned_time")
     private LocalDateTime backOfficeAssignedTime;
+
+    @Column(name = "marketing_note", columnDefinition = "TEXT")
+    private String marketingNote;
+
+    @Column(name = "branch_manager_note", columnDefinition = "TEXT")
+    private String branchManagerNote;
+
+    @Column(name = "back_office_note", columnDefinition = "TEXT")
+    private String backOfficeNote;
+
+    @Column(name = "marketing_nip")
+    private String marketingNip;
+
+    @Column(name = "branch_manager_nip")
+    private String branchManagerNip;
+
+    @Column(name = "back_office_nip")
+    private String backOfficeNip;
+
+
+    // Tenor of the loan
+    @Column(nullable = false)
+    private Integer tenor;
+
+    // Link to plafon
+    @ManyToOne
+    @JoinColumn(name = "id", nullable = false)
+    private Plafon plafon;
+
+
+    // NIP of the approvers
+    @Column(name = "nip_marketing", length = 50)
+    private String nipMarketing;
+
+    @Column(name = "nip_branch_manager", length = 50)
+    private String nipBranchManager;
+
+    @Column(name = "nip_back_office", length = 50)
+    private String nipBackOffice;
 
     // Reference to Branch entity
     @ManyToOne

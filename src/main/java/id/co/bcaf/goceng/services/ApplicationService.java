@@ -6,7 +6,6 @@ import id.co.bcaf.goceng.enums.ApplicationStatus;
 import id.co.bcaf.goceng.exceptions.*;
 import id.co.bcaf.goceng.models.*;
 import id.co.bcaf.goceng.repositories.*;
-
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -25,6 +24,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ApplicationService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ApplicationService.class);
+
     private final ApplicationRepository applicationRepo;
     private final CustomerRepository customerRepo;
     private final UserRepository userRepo;
@@ -32,60 +33,101 @@ public class ApplicationService {
     private final BranchRepository branchRepo;
     private final ApplicationLogRepository applicationLogRepo;
     private final LoanService loanService;
-
-    private static final Logger logger = LoggerFactory.getLogger(ApplicationService.class);
+    private final PlafonRepository plafonRepo;
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) throw new UserNotAuthenticatedException("User is not authenticated");
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new UserNotAuthenticatedException("User is not authenticated");
+        }
         return userRepo.findByEmail(auth.getName())
                 .orElseThrow(() -> new UserNotAuthenticatedException("User not found: " + auth.getName()));
     }
 
     @Transactional
     public ApplicationResponse create(ApplicationRequest req) {
-        Customer customer = customerRepo.findById(req.getCustomerId())
-                .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
+        Customer customer = getCustomerById(req.getCustomerId());
+        checkForPendingApplications(customer);
 
+        Branch branch = getBranchById(req.getBranchId());
+        Plafon plafon = getPlafonLimit();
+
+        validateLoanAmount(req.getAmount(), plafon.getPlafonAmount());
+
+        Application app = buildApplication(req, customer, branch, plafon);
+        return convertToResponse(applicationRepo.save(app));
+    }
+
+    private Customer getCustomerById(UUID customerId) {
+        return customerRepo.findById(customerId)
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
+    }
+
+    private void checkForPendingApplications(Customer customer) {
         boolean hasPending = applicationRepo.existsByCustomerAndStatusIn(customer, List.of(
                 ApplicationStatus.PENDING_MARKETING,
                 ApplicationStatus.PENDING_BRANCH_MANAGER,
                 ApplicationStatus.PENDING_BACK_OFFICE
         ));
+        if (hasPending) {
+            throw new ApplicationAlreadyActiveException("Customer already has an active application");
+        }
+    }
 
-        if (hasPending) throw new ApplicationAlreadyActiveException("Customer already has an active application");
-
-        Branch branch = branchRepo.findById(req.getBranchId())
+    private Branch getBranchById(UUID branchId) {
+        return branchRepo.findById(branchId)
                 .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
+    }
 
+    private Plafon getPlafonLimit() {
+        return plafonRepo.findFirstByOrderByPlafonAmountAsc()
+                .orElseThrow(() -> new RuntimeException("No loan limit available"));
+    }
+
+    private void validateLoanAmount(BigDecimal requestedAmount, BigDecimal plafonAmount) {
+        if (requestedAmount.compareTo(plafonAmount) > 0) {
+            throw new LoanAmountExceededException("Requested loan amount exceeds the plafon limit.");
+        }
+    }
+
+    private Application buildApplication(ApplicationRequest req, Customer customer, Branch branch, Plafon plafon) {
         Application app = new Application();
         app.setCustomer(customer);
         app.setAmount(req.getAmount());
         app.setPurpose(req.getPurpose());
+        app.setTenor(req.getTenor());
         app.setBranch(branch);
         app.setStatus(ApplicationStatus.PENDING_MARKETING);
         app.setCreatedAt(LocalDateTime.now());
         app.setUpdatedAt(LocalDateTime.now());
 
-        return convertToResponse(applicationRepo.save(app));
+        app.setPlafon(plafon);
+        app.setInterestRate(plafon.getInterestRate());
+        app.setPlafonType(plafon.getPlafonType());
+        app.setPlafonLimit(plafon.getPlafonAmount());
+
+        return app;
     }
 
     public List<ApplicationResponse> getAllApplications() {
-        return applicationRepo.findAll().stream().map(this::convertToResponse).collect(Collectors.toList());
+        return applicationRepo.findAll().stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 
     public ApplicationResponse getApplicationById(UUID id) {
-        return convertToResponse(applicationRepo.findById(id)
-                .orElseThrow(() -> new ApplicationNotFoundException("Application not found")));
+        Application app = applicationRepo.findById(id)
+                .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
+        return convertToResponse(app);
     }
 
     @Transactional
     public ApplicationResponse approveApplication(UUID id, boolean isApproved, ApplicationStatus currentStatus,
                                                   ApplicationStatus nextStatus, ApprovalRole role) {
-        Application app = applicationRepo.findById(id)
-                .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
+        Application app = getApplicationById(id).toApplication();
 
         validateCurrentStatus(app, currentStatus);
+
         User approver = getCurrentUser();
         validateRolePermission(role, approver);
         validateBranch(approver, app);
@@ -94,35 +136,40 @@ public class ApplicationService {
         app.setStatus(isApproved ? nextStatus : getRejectedStatus(role));
         app.setUpdatedAt(LocalDateTime.now());
 
-
-
         if (isApproved && app.getStatus() == ApplicationStatus.APPROVED) {
-            try {
-                Loan loan = loanService.createLoanFromApprovedApplication(
-                        app, app.getCustomer(), BigDecimal.valueOf(12), 12
-                );
-                logger.info("Loan created for application ID: {}", app.getId());
-            } catch (Exception e) {
-                logger.error("Failed to create loan for application ID {}: {}", app.getId(), e.getMessage(), e);
-                throw new RuntimeException("Loan creation failed: " + e.getMessage());
-            }
+            processLoanCreation(app);
         }
 
         logApplicationChange(app, approver, isApproved ? "APPROVE" : "REJECT", isApproved);
+
         return convertToResponse(applicationRepo.save(app));
+    }
+
+    private void processLoanCreation(Application app) {
+        try {
+            Plafon limit = getPlafonLimit();
+            loanService.createLoanFromApprovedApplication(app, app.getCustomer(), limit.getInterestRate(), app.getTenor());
+            logger.info("Loan created for application ID: {}", app.getId());
+        } catch (Exception e) {
+            logger.error("Failed to create loan for application ID {}: {}", app.getId(), e.getMessage(), e);
+            throw new RuntimeException("Loan creation failed: " + e.getMessage());
+        }
     }
 
     @Transactional
     public ApplicationResponse rejectApplication(UUID id, ApprovalRole role) {
         Application app = applicationRepo.findById(id)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
+
         User approver = getCurrentUser();
         validateRolePermission(role, approver);
         validateBranch(approver, app);
+
         app.setStatus(getRejectedStatus(role));
         app.setUpdatedAt(LocalDateTime.now());
 
         logApplicationChange(app, approver, "REJECT", false);
+
         return convertToResponse(applicationRepo.save(app));
     }
 
@@ -132,12 +179,8 @@ public class ApplicationService {
     }
 
     private void validateRolePermission(ApprovalRole role, User approver) {
-        String required = switch (role) {
-            case MARKETING -> "ROLE_MARKETING";
-            case BRANCH_MANAGER -> "ROLE_BRANCH_MANAGER";
-            case BACK_OFFICE -> "ROLE_BACK_OFFICE";
-        };
-        if (!approver.getRole().getRoleName().equals(required))
+        String required = role.name();
+        if (!approver.getRole().getRoleName().equals("ROLE_" + required))
             throw new InsufficientPermissionsException("Required role: " + required);
     }
 
@@ -154,24 +197,23 @@ public class ApplicationService {
             case MARKETING -> {
                 app.setMarketingAssigned(approver);
                 app.setMarketingAssignedTime(now);
+                app.setNipMarketing(getNipFromApprover(approver));
             }
             case BRANCH_MANAGER -> {
                 app.setBranchManagerAssigned(approver);
                 app.setBranchManagerAssignedTime(now);
+                app.setNipBranchManager(getNipFromApprover(approver));
             }
             case BACK_OFFICE -> {
                 app.setBackOfficeAssigned(approver);
                 app.setBackOfficeAssignedTime(now);
+                app.setNipBackOffice(getNipFromApprover(approver));
             }
         }
     }
 
     private ApplicationStatus getRejectedStatus(ApprovalRole role) {
-        return switch (role) {
-            case MARKETING -> ApplicationStatus.REJECTED_MARKETING;
-            case BRANCH_MANAGER -> ApplicationStatus.REJECTED_BRANCH_MANAGER;
-            case BACK_OFFICE -> ApplicationStatus.REJECTED_BACK_OFFICE;
-        };
+        return ApplicationStatus.valueOf("REJECTED_" + role.name());
     }
 
     private void logApplicationChange(Application app, User approver, String action, boolean isApproved) {
@@ -202,6 +244,16 @@ public class ApplicationService {
                 .marketingAssignedTime(app.getMarketingAssignedTime())
                 .branchManagerAssignedTime(app.getBranchManagerAssignedTime())
                 .backOfficeAssignedTime(app.getBackOfficeAssignedTime())
+                .tenor(app.getTenor())
+                .limitType(app.getPlafonType())
+                .limitAmount(app.getPlafonLimit())
+                .interestRate(app.getInterestRate())
+                .noteMarketing(app.getMarketingNote())
+                .noteBranchManager(app.getBranchManagerNote())
+                .noteBackOffice(app.getBackOfficeNote())
+                .nipMarketing(app.getNipMarketing())
+                .nipBranchManager(app.getNipBranchManager())
+                .nipBackOffice(app.getNipBackOffice())
                 .build();
     }
 
@@ -209,25 +261,22 @@ public class ApplicationService {
         return user != null ? user.getName() : null;
     }
 
+    private String getNipFromApprover(User approver) {
+        Employee employee = employeeRepo.findById(approver.getEmployee().getId())
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for user: " + approver.getUsername()));
+        return employee.getNIP();
+    }
+
     public ApplicationResponse marketingApprove(UUID id, boolean isApproved) {
-        return approveApplication(id, isApproved,
-                ApplicationStatus.PENDING_MARKETING,
-                ApplicationStatus.PENDING_BRANCH_MANAGER,
-                ApprovalRole.MARKETING);
+        return approveApplication(id, isApproved, ApplicationStatus.PENDING_MARKETING, ApplicationStatus.PENDING_BRANCH_MANAGER, ApprovalRole.MARKETING);
     }
 
     public ApplicationResponse branchManagerApprove(UUID id, boolean isApproved) {
-        return approveApplication(id, isApproved,
-                ApplicationStatus.PENDING_BRANCH_MANAGER,
-                ApplicationStatus.PENDING_BACK_OFFICE,
-                ApprovalRole.BRANCH_MANAGER);
+        return approveApplication(id, isApproved, ApplicationStatus.PENDING_BRANCH_MANAGER, ApplicationStatus.PENDING_BACK_OFFICE, ApprovalRole.BRANCH_MANAGER);
     }
 
     public ApplicationResponse backOfficeApprove(UUID id, boolean isApproved) {
-        return approveApplication(id, isApproved,
-                ApplicationStatus.PENDING_BACK_OFFICE,
-                ApplicationStatus.APPROVED,
-                ApprovalRole.BACK_OFFICE);
+        return approveApplication(id, isApproved, ApplicationStatus.PENDING_BACK_OFFICE, ApplicationStatus.APPROVED, ApprovalRole.BACK_OFFICE);
     }
 
     public enum ApprovalRole {

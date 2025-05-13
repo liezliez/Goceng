@@ -9,7 +9,12 @@ import java.util.UUID;
 @Setter
 public class ApplicationRequest {
     private UUID customerId;
-    private String purpose;
     private BigDecimal amount;
+    private String purpose;
     private UUID branchId;
+    private Integer tenor;
+
+    private UUID loanLimitId;
+    private String noteMarketing;
+
 }
