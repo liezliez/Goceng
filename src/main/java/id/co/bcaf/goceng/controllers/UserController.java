@@ -4,7 +4,9 @@ import id.co.bcaf.goceng.dto.RegisterRequest;
 import id.co.bcaf.goceng.dto.UserRequest;
 import id.co.bcaf.goceng.dto.UserResponse;
 import id.co.bcaf.goceng.enums.AccountStatus;
+import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
+import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,8 +116,25 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('DELETE_USER')")
-    @PostMapping("/id/{id}/delete")
+    @PutMapping("/id/{id}/edit")
+//    @PreAuthorize("hasAuthority('EDIT_USER')")
+    public ResponseEntity<UserResponse> editUser(@PathVariable UUID id, @RequestBody @Validated UserRequest request) {
+        log.info("Editing user with ID: {}", id);
+        return userService.updateUserFromRequest(id, request)
+                .map(user -> {
+                    UserResponse response = new UserResponse();
+                    response.setId(user.getIdUser());
+                    response.setName(user.getName());
+                    response.setEmail(user.getEmail());
+                    response.setAccount_status(user.getStatus());
+                    response.setRole(user.getRole().getRoleName());
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+//    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('DELETE_USER')")
+    @PutMapping("/id/{id}/delete")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
         if (userService.deleteUser(id)) {
             return ResponseEntity.ok("User has been soft-deleted (status: DELETED)");
@@ -123,8 +142,8 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
 
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('RESTORE_USER')")
-    @PostMapping("/id/{id}/restore")
+//    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('RESTORE_USER')")
+    @PutMapping("/id/{id}/restore")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
         if (userService.restoreUser(id)) {
             return ResponseEntity.ok("User restored to ACTIVE");
@@ -133,8 +152,23 @@ public class UserController {
                 .body("User is not in DELETED status or does not exist.");
     }
 
+
     @GetMapping("/count-by-status")
     public ResponseEntity<Map<AccountStatus, Long>> countUsersByStatus() {
         return ResponseEntity.ok(userService.countUsersGroupedByStatus());
     }
+
+    @RestController
+    @RequestMapping("/roles")
+    public class RoleController {
+
+        @Autowired
+        private RoleRepository roleRepository;
+
+        @GetMapping
+        public ResponseEntity<List<Role>> getAllRoles() {
+            return ResponseEntity.ok(roleRepository.findAll());
+        }
+    }
+
 }

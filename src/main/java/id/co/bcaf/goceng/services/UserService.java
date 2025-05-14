@@ -134,13 +134,33 @@ public class UserService {
                 .collect(Collectors.groupingBy(User::getStatus, Collectors.counting()));
     }
 
+//    public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {
+//        return userRepository.findById(id).map(user -> {
+//            if (request.getName() != null) user.setName(request.getName());
+//            if (request.getEmail() != null) user.setEmail(request.getEmail());
+//            if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+//                user.setPassword(passwordEncoder.encode(request.getPassword()));
+//            }
+//            if (request.getAccount_status() != null) {
+//                user.setAccountStatus(request.getAccount_status());
+//            }
+//            if (request.getIdRole() != null) {
+//                Role role = getRoleById(request.getIdRole());
+//                user.setRole(role);
+//            }
+//            if (request.getIdBranch() != null) {
+//                Branch branch = getBranchById(request.getIdBranch());
+//                user.setBranch(branch);
+//            }
+//
+//            return userRepository.save(user);
+//        });
+//    }
+
     public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {
         return userRepository.findById(id).map(user -> {
             if (request.getName() != null) user.setName(request.getName());
             if (request.getEmail() != null) user.setEmail(request.getEmail());
-            if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-                user.setPassword(passwordEncoder.encode(request.getPassword()));
-            }
             if (request.getAccount_status() != null) {
                 user.setAccountStatus(request.getAccount_status());
             }
@@ -151,6 +171,11 @@ public class UserService {
             if (request.getIdBranch() != null) {
                 Branch branch = getBranchById(request.getIdBranch());
                 user.setBranch(branch);
+            }
+
+            // Only update password if it's provided in the request
+            if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
             }
 
             return userRepository.save(user);
@@ -168,4 +193,6 @@ public class UserService {
             return false;
         }).orElse(false);
     }
+
+
 }
