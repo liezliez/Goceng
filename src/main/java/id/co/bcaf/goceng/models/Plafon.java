@@ -7,23 +7,23 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Table(name = "loan_limit")
+@Table(name = "plafon")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LoanLimit {
+public class Plafon {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id_loan_limit")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "limit_type", nullable = false)
-    private String limitType; // e.g. "Standard", "Premium", etc.
+    @Column(name = "plafon_type", nullable = false)
+    private String plafonType;
 
-    @Column(name = "limit_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal limitAmount;
+    @Column(name = "plafon_amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal plafonAmount;
 
     @Column(name = "interest_rate", nullable = false, precision = 5, scale = 2)
     private BigDecimal interestRate;

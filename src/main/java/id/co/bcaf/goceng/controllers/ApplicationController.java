@@ -2,7 +2,7 @@ package id.co.bcaf.goceng.controllers;
 
 import id.co.bcaf.goceng.dto.ApplicationRequest;
 import id.co.bcaf.goceng.dto.ApplicationResponse;
-import id.co.bcaf.goceng.services.ApplicationService;
+import id.co.bcaf.goceng.dto.ApprovalRequest;  // Import the new ApprovalRequest DTO
 import id.co.bcaf.goceng.services.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,27 +29,27 @@ public class ApplicationController {
     @PutMapping("/{id}/approve/marketing")
     public ResponseEntity<ApplicationResponse> marketingApprove(
             @PathVariable UUID id,
-            @RequestParam boolean isApproved
+            @RequestBody ApprovalRequest approvalRequest  // Accept the approval data in the request body
     ) {
-        return ResponseEntity.ok(applicationService.marketingApprove(id, isApproved));
+        return ResponseEntity.ok(applicationService.marketingApprove(id, approvalRequest.isApproved()));
     }
 
     // ✅ Progress application approval for Branch Manager
     @PutMapping("/{id}/approve/branch-manager")
     public ResponseEntity<ApplicationResponse> branchManagerApprove(
             @PathVariable UUID id,
-            @RequestParam boolean isApproved
+            @RequestBody ApprovalRequest approvalRequest  // Accept the approval data in the request body
     ) {
-        return ResponseEntity.ok(applicationService.branchManagerApprove(id, isApproved));
+        return ResponseEntity.ok(applicationService.branchManagerApprove(id, approvalRequest.isApproved()));
     }
 
     // ✅ Progress application approval for Back Office
     @PutMapping("/{id}/approve/back-office")
     public ResponseEntity<ApplicationResponse> backOfficeApprove(
             @PathVariable UUID id,
-            @RequestParam boolean isApproved
+            @RequestBody ApprovalRequest approvalRequest  // Accept the approval data in the request body
     ) {
-        return ResponseEntity.ok(applicationService.backOfficeApprove(id, isApproved));
+        return ResponseEntity.ok(applicationService.backOfficeApprove(id, approvalRequest.isApproved()));
     }
 
     // ✅ Get all applications
