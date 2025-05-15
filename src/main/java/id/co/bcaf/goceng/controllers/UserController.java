@@ -51,6 +51,12 @@ public class UserController {
         return ResponseEntity.ok("You are: " + principal.getName());
     }
 
+    @PutMapping("/test-put")
+    public ResponseEntity<String> testPut() {
+        return ResponseEntity.ok("PUT works");
+    }
+
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody @Validated RegisterRequest request) {
         log.info("Registering new customer: {}", request.getEmail());
