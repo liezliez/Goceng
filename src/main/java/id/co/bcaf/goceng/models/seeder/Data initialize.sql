@@ -34,15 +34,15 @@ VALUES
   ('FD7B1328-60D9-44B3-9E93-0C2D126BC6EF', 'Balikpapan', 'Jl. Jendral Sudirman No.2', 'Balikpapan', 'Kalimantan Timur', -1.2654, 116.9026), -- Balikpapan
   ('B8828AE4-2266-4634-BB2A-4B8C870B32F5', 'Padang', 'Jl. Ahmad Yani No.7', 'Padang', 'Sumatera Barat', -0.9470, 100.4170); -- Padang
 
-INSERT INTO users (id_user,account_status,email,name,password,id_branch,id_role) VALUES
-	 (N'774EFFAA-8F6A-4CE4-8B0C-1671889E45E2',N'ACTIVE',N'Daisha8@example.net',N'Sadye_Rodriguez70',N'$2a$10$foJ.N4lCUqd3ZDqr/0c/AOgyaxqJp3IOPZshLdwRZ9gOZYptRGroC',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
-	 (N'200EEF2C-81AA-4DCA-A52A-183CD3F4E2EC',N'ACTIVE',N'Lee.Borer86@example.com',N'Johnathan Doe',N'$2a$10$jpR2pTEe6NrHYPNQ6Hytz.mhYO9noInMFbIuszGxapwbKRTW6MZdS',N'9B9A08D0-67C7-4783-B5F0-35E0E1A3D0D0',1),
-	 (N'58DA2AC0-CC0B-4E40-BEA7-34B7C113DEB1',N'ACTIVE',N'Lonny.Langosh54@example.net',N'Kellen_Pollich82',N'$2a$10$A7b59xPVw7M2UyjPReVnMOchwROJzqmWzrwdhlAQQz6ap4djiVDo2',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',3),
-	 (N'43DEEE38-2CD2-4FBB-846E-400EA364F3A7',N'ACTIVE',N'Norval_Jenkins24@example.net',N'Alysson15',N'$2a$10$RYLJDbegPx/kOsEUTJ3ofuQ0zluPv6MkVzZLEoKqswzEZ5.B9oz5m',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',4),
-	 (N'CC46E765-5466-42EC-9A78-61DB78CBA56B',N'ACTIVE',N'Sammie.Orn@example.org',N'Harrison_Runte',N'$2a$10$7Fn8e3226cbGyW9n5n5TqeTa9TlZ997qI8bgng8Lg3p6v31gKsmqu',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
-	 (N'783FA406-C5F8-47BE-A742-7E468A33EC28',N'ACTIVE',N'Brendan.Reinger@example.com',N'Terrill.Schowalter',N'$2a$10$WY.lsi7rEbVyl1TX1aNGU.gKaqySadsi5UeHLmC4qJhUEFl53PGsC',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
+INSERT INTO users (id,account_status,email,name,password,id_branch,id_role) VALUES
+	 (N'774EFFAA-8F6A-4CE4-8B0C-1671889E45E2',N'ACTIVE',N'customer1@example.net',N'Sadye_Rodriguez70',N'$2a$10$foJ.N4lCUqd3ZDqr/0c/AOgyaxqJp3IOPZshLdwRZ9gOZYptRGroC',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
+	 (N'200EEF2C-81AA-4DCA-A52A-183CD3F4E2EC',N'ACTIVE',N'superadmin@example.com',N'Johnathan Doe',N'$2a$10$jpR2pTEe6NrHYPNQ6Hytz.mhYO9noInMFbIuszGxapwbKRTW6MZdS',N'9B9A08D0-67C7-4783-B5F0-35E0E1A3D0D0',1),
+	 (N'58DA2AC0-CC0B-4E40-BEA7-34B7C113DEB1',N'ACTIVE',N'marketing@example.net',N'Kellen_Pollich82',N'$2a$10$A7b59xPVw7M2UyjPReVnMOchwROJzqmWzrwdhlAQQz6ap4djiVDo2',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',3),
+	 (N'43DEEE38-2CD2-4FBB-846E-400EA364F3A7',N'ACTIVE',N'branchmanager@example.net',N'Alysson15',N'$2a$10$RYLJDbegPx/kOsEUTJ3ofuQ0zluPv6MkVzZLEoKqswzEZ5.B9oz5m',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',4),
+	 (N'CC46E765-5466-42EC-9A78-61DB78CBA56B',N'ACTIVE',N'customer2@example.org',N'Harrison_Runte',N'$2a$10$7Fn8e3226cbGyW9n5n5TqeTa9TlZ997qI8bgng8Lg3p6v31gKsmqu',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
+	 (N'783FA406-C5F8-47BE-A742-7E468A33EC28',N'ACTIVE',N'customer3@example.com',N'Terrill.Schowalter',N'$2a$10$WY.lsi7rEbVyl1TX1aNGU.gKaqySadsi5UeHLmC4qJhUEFl53PGsC',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
 	 (N'7D4A8E39-6E79-4A0C-BC23-B51DC6A0202B',N'ACTIVE',N'Jennie41@example.org',N'Emmanuelle67',N'$2a$10$3vTLhpTin5W9p77udMX0xuOq.UGxl0AXd6zANgfsVw3eAgCSLIXR6',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
-	 (N'FB2000D1-A44C-4D4C-8AEA-F949F01D5CE4',N'ACTIVE',N'Friedrich41@example.org',N'Domenic69',N'$2a$10$ye3FXnnwWuTCYkyXlWNvpuhjqKD23Xg0vtJkaRspDmNFNJ8JqPMaG',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',5);
+	 (N'FB2000D1-A44C-4D4C-8AEA-F949F01D5CE4',N'ACTIVE',N'backoffice@example.org',N'Domenic69',N'$2a$10$ye3FXnnwWuTCYkyXlWNvpuhjqKD23Xg0vtJkaRspDmNFNJ8JqPMaG',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',5);
 
 INSERT INTO customers (id,account_no,address,credit_limit,date_of_birth,emergency_call,home_ownership_status,mother_maiden_name,nik,occupation,place_of_birth,salary,telp_no,id_user,name) VALUES
 	 (N'D6B8AB01-A26D-4257-BD17-DEE00247FC81',N'64305084',N'5037 Farrell Stravenue',5000000.00,'1998-02-04',N'081298765432',N'RENT',N'Siti Aminah',N'47568238',N'Software Engineer',N'Redmond',5000000.00,N'62-345-363-0095',N'7D4A8E39-6E79-4A0C-BC23-B51DC6A0202B','Liezarda');
@@ -63,7 +63,8 @@ VALUES
     ('CREATE_USER'),
     ('UPDATE_USER'),
     ('DELETE_USER'),
-    ('RESTORE_USER');
+    ('RESTORE_USER'),
+    ('EDIT_USER');
 
 -- Assign features to roles (for example)
 INSERT INTO role_features (id_role, id_feature)
