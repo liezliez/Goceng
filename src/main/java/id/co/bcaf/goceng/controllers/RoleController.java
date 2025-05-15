@@ -1,7 +1,9 @@
 package id.co.bcaf.goceng.controllers;
 
 import id.co.bcaf.goceng.models.Role;
+import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.services.RoleService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,6 +13,15 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/roles")
 public class RoleController {
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+//    @GetMapping
+//    public ResponseEntity<List<Role>> getAllRoles() {
+//        return ResponseEntity.ok(roleRepository.findAll());
+//    }
+
 
     private final RoleService roleService;
 

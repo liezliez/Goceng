@@ -4,9 +4,7 @@ import id.co.bcaf.goceng.dto.RegisterRequest;
 import id.co.bcaf.goceng.dto.UserRequest;
 import id.co.bcaf.goceng.dto.UserResponse;
 import id.co.bcaf.goceng.enums.AccountStatus;
-import id.co.bcaf.goceng.models.Role;
 import id.co.bcaf.goceng.models.User;
-import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,8 +13,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.security.Principal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
@@ -33,18 +33,10 @@ public class UserController {
         }
 
         return userService.getUserByEmail(principal.getName())
-                .map(user -> {
-                    UserResponse dto = new UserResponse();
-                    dto.setId(user.getIdUser());
-                    dto.setName(user.getName());
-                    dto.setEmail(user.getEmail());
-                    dto.setAccount_status(user.getStatus());
-                    dto.setRole(user.getRole().getRoleName());
-                    return ResponseEntity.ok(dto);
-                })
+                .map(user -> toUserResponse(user))
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
-
 
     @GetMapping("/test-access")
     public ResponseEntity<String> testAccess(Principal principal) {
@@ -56,9 +48,8 @@ public class UserController {
         return ResponseEntity.ok("PUT works");
     }
 
-
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody @Validated RegisterRequest request) {
+    public ResponseEntity<?> registerUser(@RequestBody @Valid RegisterRequest request) {
         log.info("Registering new customer: {}", request.getEmail());
 
         if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
@@ -72,7 +63,7 @@ public class UserController {
             newUser.setPassword(request.getPassword());
 
             User registeredUser = userService.registerUser(newUser, request.getBranchId());
-            return ResponseEntity.ok(registeredUser);
+            return ResponseEntity.ok(toUserResponse(registeredUser));
         } catch (Exception ex) {
             log.error("Error during registration: {}", ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed.");
@@ -80,20 +71,26 @@ public class UserController {
     }
 
     @GetMapping("/list")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers()
+                .stream()
+                .map(this::toUserResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
     }
 
     @GetMapping("/id/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable UUID id) {
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
         return userService.getUserById(id)
+                .map(this::toUserResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/email")
-    public ResponseEntity<User> getUserByEmail(@RequestParam String email) {
+    public ResponseEntity<UserResponse> getUserByEmail(@RequestParam String email) {
         return userService.getUserByEmail(email)
+                .map(this::toUserResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -102,7 +99,11 @@ public class UserController {
     public ResponseEntity<?> getUsersByStatus(@PathVariable String status) {
         try {
             AccountStatus accountStatus = AccountStatus.valueOf(status.toUpperCase());
-            return ResponseEntity.ok(userService.getUsersByStatus(accountStatus));
+            List<UserResponse> users = userService.getUsersByStatus(accountStatus)
+                    .stream()
+                    .map(this::toUserResponse)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(users);
         } catch (IllegalArgumentException e) {
             log.error("Invalid account status: {}", status);
             return ResponseEntity.badRequest().body("Invalid account status value.");
@@ -110,37 +111,34 @@ public class UserController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<User> createUser(@RequestBody @Validated User user, @RequestParam UUID branchId) {
+//    @PreAuthorize("hasAuthority('CREATE_USER')")
+    public ResponseEntity<UserResponse> createUser(@RequestBody @Valid User user, @RequestParam UUID branchId) {
         log.info("Creating user: {}", user.getEmail());
-        return ResponseEntity.ok(userService.createUser(user, branchId));
+        User createdUser = userService.createUser(user, branchId);
+        return ResponseEntity.ok(toUserResponse(createdUser));
     }
 
     @PutMapping("/id/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserRequest request) {
+//    @PreAuthorize("hasAuthority('EDIT_USER')")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @RequestBody @Valid UserRequest request) {
         return userService.updateUserFromRequest(id, request)
+                .map(this::toUserResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/id/{id}/edit")
 //    @PreAuthorize("hasAuthority('EDIT_USER')")
-    public ResponseEntity<UserResponse> editUser(@PathVariable UUID id, @RequestBody @Validated UserRequest request) {
+    public ResponseEntity<UserResponse> editUser(@PathVariable UUID id, @RequestBody @Valid UserRequest request) {
         log.info("Editing user with ID: {}", id);
         return userService.updateUserFromRequest(id, request)
-                .map(user -> {
-                    UserResponse response = new UserResponse();
-                    response.setId(user.getIdUser());
-                    response.setName(user.getName());
-                    response.setEmail(user.getEmail());
-                    response.setAccount_status(user.getStatus());
-                    response.setRole(user.getRole().getRoleName());
-                    return ResponseEntity.ok(response);
-                })
+                .map(this::toUserResponse)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-//    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('DELETE_USER')")
     @PutMapping("/id/{id}/delete")
+//    @PreAuthorize("hasAuthority('DELETE_USER')")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
         if (userService.deleteUser(id)) {
             return ResponseEntity.ok("User has been soft-deleted (status: DELETED)");
@@ -148,8 +146,8 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
 
-//    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('RESTORE_USER')")
     @PutMapping("/id/{id}/restore")
+//    @PreAuthorize("hasAuthority('RESTORE_USER')")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
         if (userService.restoreUser(id)) {
             return ResponseEntity.ok("User restored to ACTIVE");
@@ -158,23 +156,18 @@ public class UserController {
                 .body("User is not in DELETED status or does not exist.");
     }
 
-
     @GetMapping("/count-by-status")
     public ResponseEntity<Map<AccountStatus, Long>> countUsersByStatus() {
         return ResponseEntity.ok(userService.countUsersGroupedByStatus());
     }
 
-    @RestController
-    @RequestMapping("/roles")
-    public class RoleController {
-
-        @Autowired
-        private RoleRepository roleRepository;
-
-        @GetMapping
-        public ResponseEntity<List<Role>> getAllRoles() {
-            return ResponseEntity.ok(roleRepository.findAll());
-        }
+    private UserResponse toUserResponse(User user) {
+        UserResponse dto = new UserResponse();
+        dto.setId(user.getIdUser());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setAccount_status(user.getStatus());
+        dto.setRole(user.getRole() != null ? user.getRole().getRoleName() : null);
+        return dto;
     }
-
 }

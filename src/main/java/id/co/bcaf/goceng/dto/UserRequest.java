@@ -18,11 +18,12 @@ public class UserRequest {
     @NotBlank
     private String email;
 
-    @NotBlank
+    // Remove @NotBlank to allow null or empty passwords (optional)
     private String password;
 
-    private AccountStatus account_status; // Enum
+    private AccountStatus account_status;
 
-    private Integer idRole; // Use Integer (nullable)
-    private UUID idBranch; // Use UUID for nullable branch ID
+    private Integer idRole;
+
+    private UUID idBranch;
 }

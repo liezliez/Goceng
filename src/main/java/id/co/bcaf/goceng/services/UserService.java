@@ -8,7 +8,6 @@ import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.BranchRepository;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -134,46 +133,22 @@ public class UserService {
                 .collect(Collectors.groupingBy(User::getStatus, Collectors.counting()));
     }
 
-//    public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {
-//        return userRepository.findById(id).map(user -> {
-//            if (request.getName() != null) user.setName(request.getName());
-//            if (request.getEmail() != null) user.setEmail(request.getEmail());
-//            if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-//                user.setPassword(passwordEncoder.encode(request.getPassword()));
-//            }
-//            if (request.getAccount_status() != null) {
-//                user.setAccountStatus(request.getAccount_status());
-//            }
-//            if (request.getIdRole() != null) {
-//                Role role = getRoleById(request.getIdRole());
-//                user.setRole(role);
-//            }
-//            if (request.getIdBranch() != null) {
-//                Branch branch = getBranchById(request.getIdBranch());
-//                user.setBranch(branch);
-//            }
-//
-//            return userRepository.save(user);
-//        });
-//    }
-
     public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {
         return userRepository.findById(id).map(user -> {
             if (request.getName() != null) user.setName(request.getName());
             if (request.getEmail() != null) user.setEmail(request.getEmail());
-            if (request.getAccount_status() != null) {
-                user.setAccountStatus(request.getAccount_status());
-            }
+            if (request.getAccount_status() != null) user.setAccountStatus(request.getAccount_status());
+
             if (request.getIdRole() != null) {
                 Role role = getRoleById(request.getIdRole());
                 user.setRole(role);
             }
+
             if (request.getIdBranch() != null) {
                 Branch branch = getBranchById(request.getIdBranch());
                 user.setBranch(branch);
             }
 
-            // Only update password if it's provided in the request
             if (request.getPassword() != null && !request.getPassword().isEmpty()) {
                 user.setPassword(passwordEncoder.encode(request.getPassword()));
             }
@@ -182,7 +157,6 @@ public class UserService {
         });
     }
 
-    // ✅ Change password method
     public boolean changePassword(UUID userId, String oldPassword, String newPassword) {
         return userRepository.findById(userId).map(user -> {
             if (passwordEncoder.matches(oldPassword, user.getPassword())) {
@@ -193,6 +167,4 @@ public class UserService {
             return false;
         }).orElse(false);
     }
-
-
 }
