@@ -20,7 +20,7 @@ public class Branch {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id_branch")
-    private UUID idBranch;
+    private UUID id;
 
     @Column(nullable = false, length = 100)
     private String name;
