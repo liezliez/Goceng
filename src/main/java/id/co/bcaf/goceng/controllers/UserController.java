@@ -1,6 +1,7 @@
 package id.co.bcaf.goceng.controllers;
 
 import id.co.bcaf.goceng.dto.RegisterRequest;
+import id.co.bcaf.goceng.dto.RoleDto;
 import id.co.bcaf.goceng.dto.UserRequest;
 import id.co.bcaf.goceng.dto.UserResponse;
 import id.co.bcaf.goceng.enums.AccountStatus;
@@ -167,7 +168,38 @@ public class UserController {
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
         dto.setAccount_status(user.getStatus());
-        dto.setRole(user.getRole() != null ? user.getRole().getRoleName() : null);
+
+        if (user.getRole() != null) {
+            UserResponse.RoleDto roleDto = new UserResponse.RoleDto();
+            roleDto.setId(user.getRole().getIdRole());
+            roleDto.setRoleName(user.getRole().getRoleName());
+            dto.setRole(roleDto);
+        } else {
+            dto.setRole(null);
+        }
+
+        if (user.getBranch() != null) {
+            UserResponse.BranchDto branchDto = new UserResponse.BranchDto();
+            branchDto.setId(user.getBranch().getId());      // Assuming getId() returns UUID
+            branchDto.setName(user.getBranch().getName());  // Assuming getName() exists
+            dto.setBranch(branchDto);
+        } else {
+            dto.setBranch(null);
+        }
+
+        if (user.getEmployee() != null) {
+            UserResponse.EmployeeDto employeeDto = new UserResponse.EmployeeDto();
+            employeeDto.setId(user.getEmployee().getId());     // Assuming getId() returns UUID
+            employeeDto.setName(user.getEmployee().getName()); // Assuming getName() exists
+            dto.setEmployee(employeeDto);
+        } else {
+            dto.setEmployee(null);
+        }
+
         return dto;
     }
+
+
+
+
 }
