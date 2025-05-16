@@ -3,7 +3,6 @@ package id.co.bcaf.goceng.controllers;
 import id.co.bcaf.goceng.dto.CustomerRequest;
 import id.co.bcaf.goceng.dto.CustomerResponse;
 import id.co.bcaf.goceng.services.CustomerService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +15,6 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
-    @Autowired
     public CustomerController(CustomerService customerService) {
         this.customerService = customerService;
     }
@@ -40,6 +38,12 @@ public class CustomerController {
     public ResponseEntity<CustomerResponse> update(@PathVariable UUID id, @RequestBody CustomerRequest request) {
         return ResponseEntity.ok(customerService.updateCustomer(id, request));
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<CustomerResponse> patchCustomer(@PathVariable UUID id, @RequestBody CustomerRequest request) {
+        return ResponseEntity.ok(customerService.patchCustomer(id, request));
+    }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {

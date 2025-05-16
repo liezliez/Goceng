@@ -3,6 +3,7 @@ package id.co.bcaf.goceng.services;
 import id.co.bcaf.goceng.dto.ApplicationRequest;
 import id.co.bcaf.goceng.dto.ApplicationResponse;
 import id.co.bcaf.goceng.enums.ApplicationStatus;
+import id.co.bcaf.goceng.enums.ApprovalRole;
 import id.co.bcaf.goceng.exceptions.*;
 import id.co.bcaf.goceng.models.*;
 import id.co.bcaf.goceng.repositories.*;
@@ -16,9 +17,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.*;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -78,19 +78,15 @@ public class ApplicationService {
     }
 
     private void validateCustomerDataCompleted(Customer customer) {
-        if (isEmpty(customer.getName()) ||
-                isEmpty(customer.getNik()) ||
-                customer.getDateOfBirth() == null ||
-                isEmpty(customer.getPlaceOfBirth()) ||
-                isEmpty(customer.getTelpNo()) ||
-                isEmpty(customer.getAddress()) ||
-                isEmpty(customer.getMotherMaidenName()) ||
-                isEmpty(customer.getOccupation()) ||
-                customer.getSalary() == null ||
-                isEmpty(customer.getHomeOwnershipStatus()) ||
-                isEmpty(customer.getEmergencyCall()) ||
-                customer.getCreditLimit() == null ||
-                isEmpty(customer.getAccountNo())) {
+        boolean incomplete = Stream.of(
+                customer.getName(), customer.getNik(), customer.getPlaceOfBirth(),
+                customer.getTelpNo(), customer.getAddress(), customer.getMotherMaidenName(),
+                customer.getOccupation(), customer.getHomeOwnershipStatus(),
+                customer.getEmergencyCall(), customer.getAccountNo(),
+                customer.getUrlKtp(), customer.getUrlSelfie()
+        ).anyMatch(this::isEmpty) || customer.getDateOfBirth() == null || customer.getSalary() == null || customer.getCreditLimit() == null;
+
+        if (incomplete) {
             throw new IncompleteCustomerDataException("Customer data is incomplete. Please complete all required fields before applying.");
         }
     }
@@ -119,7 +115,7 @@ public class ApplicationService {
     public List<ApplicationResponse> getAllApplications() {
         return applicationRepo.findAll().stream()
                 .map(this::convertToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ApplicationResponse getApplicationById(UUID id) {
@@ -133,7 +129,6 @@ public class ApplicationService {
                                                   ApplicationStatus nextStatus, ApprovalRole role, String note) {
         Application app = applicationRepo.findById(id)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
-
         validateCurrentStatus(app, currentStatus);
 
         User approver = getCurrentUser();
@@ -141,7 +136,6 @@ public class ApplicationService {
         validateBranch(approver, app);
 
         ApplicationStatus beforeStatus = app.getStatus();
-
         setApprovalFields(app, approver, role, note);
         ApplicationStatus newStatus = isApproved ? nextStatus : getRejectedStatus(role);
         app.setStatus(newStatus);
@@ -152,41 +146,16 @@ public class ApplicationService {
         }
 
         logApplicationChange(app, approver, isApproved ? "APPROVE" : "REJECT", isApproved, beforeStatus, newStatus);
-
         return convertToResponse(applicationRepo.save(app));
-    }
-
-    private void processLoanCreation(Application app) {
-        try {
-            loanService.createLoanFromApprovedApplication(app, app.getCustomer(), app.getInterestRate(), app.getTenor());
-            logger.info("Loan created for application ID: {}", app.getId());
-        } catch (Exception e) {
-            logger.error("Failed to create loan for application ID {}: {}", app.getId(), e.getMessage(), e);
-            throw new RuntimeException("Loan creation failed: " + e.getMessage());
-        }
     }
 
     @Transactional
     public ApplicationResponse rejectApplication(UUID id, ApprovalRole role, String note) {
-        Application app = applicationRepo.findById(id)
-                .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
-
-        User approver = getCurrentUser();
-        validateRolePermission(role, approver);
-        validateBranch(approver, app);
-
-        ApplicationStatus beforeStatus = app.getStatus();
-        setApprovalFields(app, approver, role, note);
-        app.setStatus(getRejectedStatus(role));
-        app.setUpdatedAt(LocalDateTime.now());
-
-        logApplicationChange(app, approver, "REJECT", false, beforeStatus, app.getStatus());
-
-        return convertToResponse(applicationRepo.save(app));
+        return approveApplication(id, false, null, null, role, note);
     }
 
     private void validateCurrentStatus(Application app, ApplicationStatus expectedStatus) {
-        if (app.getStatus() != expectedStatus) {
+        if (expectedStatus != null && app.getStatus() != expectedStatus) {
             throw new InvalidApplicationStatusException("Expected status: " + expectedStatus);
         }
     }
@@ -233,6 +202,16 @@ public class ApplicationService {
 
     private ApplicationStatus getRejectedStatus(ApprovalRole role) {
         return ApplicationStatus.valueOf("REJECTED_" + role.name());
+    }
+
+    private void processLoanCreation(Application app) {
+        try {
+            loanService.createLoanFromApprovedApplication(app, app.getCustomer(), app.getInterestRate(), app.getTenor());
+            logger.info("Loan created for application ID: {}", app.getId());
+        } catch (Exception e) {
+            logger.error("Failed to create loan for application ID {}: {}", app.getId(), e.getMessage(), e);
+            throw new RuntimeException("Loan creation failed: " + e.getMessage());
+        }
     }
 
     private void logApplicationChange(Application app, User approver, String action, boolean isApproved,
@@ -282,7 +261,8 @@ public class ApplicationService {
     }
 
     private String getNipFromApprover(User approver) {
-        return employeeRepo.findById(approver.getEmployee().getId())
+        return Optional.ofNullable(approver.getEmployee())
+                .flatMap(emp -> employeeRepo.findById(emp.getId()))
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for user: " + approver.getUsername()))
                 .getNIP();
     }
@@ -309,9 +289,5 @@ public class ApplicationService {
                 ApplicationStatus.APPROVED,
                 ApprovalRole.BACK_OFFICE,
                 note);
-    }
-
-    public enum ApprovalRole {
-        MARKETING, BRANCH_MANAGER, BACK_OFFICE
     }
 }

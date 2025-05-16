@@ -3,6 +3,7 @@ package id.co.bcaf.goceng.controllers;
 import id.co.bcaf.goceng.dto.ApplicationRequest;
 import id.co.bcaf.goceng.dto.ApplicationResponse;
 import id.co.bcaf.goceng.dto.ApprovalRequest;
+import id.co.bcaf.goceng.enums.ApprovalRole;
 import id.co.bcaf.goceng.services.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -62,10 +63,11 @@ public class ApplicationController {
     @PutMapping("/{id}/reject")
     public ResponseEntity<ApplicationResponse> rejectApplication(
             @PathVariable UUID id,
-            @RequestParam ApplicationService.ApprovalRole role,
-            @RequestParam(required = false) String note  // Add note here, optional
+            @RequestParam ApprovalRole role,
+            @RequestParam(required = false) String note
     ) {
         return ResponseEntity.ok(applicationService.rejectApplication(id, role, note));
     }
+
 
 }
