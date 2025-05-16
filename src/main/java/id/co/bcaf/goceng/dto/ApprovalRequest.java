@@ -1,11 +1,11 @@
 package id.co.bcaf.goceng.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Getter
-@Setter
+@Data
 public class ApprovalRequest {
-    private boolean isApproved;
+    @JsonProperty("isApproved")
+    private boolean approved;
     private String note;
 }

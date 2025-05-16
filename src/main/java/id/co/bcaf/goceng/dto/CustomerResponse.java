@@ -25,4 +25,7 @@ public class CustomerResponse {
     private String emergencyCall;
     private BigDecimal creditLimit;
     private String accountNo;
+    private String urlKtp;
+    private String urlSelfie;
+
 }

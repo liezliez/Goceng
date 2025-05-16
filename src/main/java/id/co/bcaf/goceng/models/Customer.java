@@ -62,4 +62,12 @@ public class Customer {
 
     @Column(name = "emergency_call")
     private String emergencyCall;
+
+    @Column(name = "url_ktp")
+    private String urlKtp;
+
+    @Column(name = "url_selfie")
+    private String urlSelfie;
+
+
 }
