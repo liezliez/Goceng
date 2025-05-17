@@ -35,8 +35,8 @@ public class JwtFilter extends GenericFilterBean {
             "/be/auth/login",
             "/be/auth/register",
             "/be/users/register",
-            "/be/auth/forgot-password", // Added forgot password
-            "/be/auth/reset-password", // Added reset password
+            "/be/auth/forgot-password",
+            "/be/auth/reset-password",
             "/swagger-ui/**",
             "/v3/api-docs/**"
     );

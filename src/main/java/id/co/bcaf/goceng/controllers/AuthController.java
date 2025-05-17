@@ -10,6 +10,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -18,6 +21,7 @@ import io.jsonwebtoken.JwtException;
 import id.co.bcaf.goceng.services.PasswordResetService;
 
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.Map;
 
 @Slf4j
@@ -172,4 +176,12 @@ public class AuthController {
         }
         return null;
     }
+
+    @GetMapping("/check-authorities")
+    public ResponseEntity<String> checkAuthorities(@AuthenticationPrincipal UserDetails userDetails) {
+        Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
+        authorities.forEach(auth -> System.out.println("Authority: " + auth.getAuthority()));
+        return ResponseEntity.ok("Check console for authorities");
+    }
+
 }

@@ -24,4 +24,6 @@ public interface RoleFeatureRepository extends JpaRepository<RoleFeature, Long> 
 
     // Find the RoleFeature pair by Role and Feature
     Optional<RoleFeature> findByRoleAndFeature(Role role, Feature feature);
+
+
 }

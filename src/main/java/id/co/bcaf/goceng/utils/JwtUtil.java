@@ -38,14 +38,16 @@ public class JwtUtil {
 
     // 🔐 Generate Access Token with role
     public String generateToken(String email, String role) {
+        String cleanRole = role.startsWith("ROLE_") ? role.substring(5) : role;
         return Jwts.builder()
                 .setSubject(email)
-                .claim("role", role)
+                .claim("role", cleanRole)   // store role *without* prefix
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
     // 🔁 Generate Refresh Token
     public String generateRefreshToken(String email) {

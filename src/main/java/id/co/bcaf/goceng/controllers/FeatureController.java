@@ -17,28 +17,38 @@ public class FeatureController {
     @Autowired
     private FeatureService featureService;
 
-    // Method to get all features
     @GetMapping
     public ResponseEntity<List<Feature>> getAllFeatures() {
         return ResponseEntity.ok(featureService.getAllFeatures());
     }
 
-    // Method to create a new feature
     @PostMapping
     public ResponseEntity<Feature> createFeature(@RequestBody Feature feature) {
         return ResponseEntity.ok(featureService.createFeature(feature));
     }
 
-    // Method to get the features assigned to the current user's role
     @GetMapping("/my-features")
     public ResponseEntity<List<Feature>> getMyFeatures(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            System.out.println("UserDetails is null - unauthenticated access");
+            return ResponseEntity.status(401).build();
+        }
+
+        System.out.println("Authenticated user: " + userDetails.getUsername());
+        System.out.println("Authorities: " + userDetails.getAuthorities());
+
         String roleName = userDetails.getAuthorities().stream()
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Role not found"))
+                .orElseThrow(() -> new RuntimeException("No role found for current user"))
                 .getAuthority();
 
+//        while (roleName.startsWith("ROLE_")) {
+//            roleName = roleName.substring(5);
+//        }
+
         List<Feature> features = featureService.getFeaturesByRoleName(roleName);
-        System.out.println(roleName);
+
         return ResponseEntity.ok(features);
     }
+
 }
