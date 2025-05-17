@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class    AuthService {
+public class AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
@@ -33,7 +33,7 @@ public class    AuthService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private RoleFeatureService roleFeatureService; // Inject RoleFeatureService
+    private RoleFeatureService roleFeatureService;
 
     public AuthResponse authenticateUser(AuthRequest authRequest) {
         String email = authRequest.getEmail();
@@ -43,31 +43,31 @@ public class    AuthService {
 
         Optional<User> userOptional = userRepository.findByEmail(email);
 
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-
-            if (passwordEncoder.matches(password, user.getPassword())) {
-                logger.info("Login successful for email: {}", email);
-
-                String roleName = user.getRole().getRoleName();
-                String token = jwtUtil.generateToken(email, roleName);
-                String refreshToken = jwtUtil.generateRefreshToken(email);
-
-                // Optionally, if you want expiration information
-                Long expiresAt = jwtUtil.extractExpiration(token).getTimeInMillis();
-
-                // Fetch the features associated with the user's role !!!!!!!!
-                List<String> userFeatures = roleFeatureService.getFeaturesByRole(roleName);
-
-                return new AuthResponse(token, refreshToken, user.getUsername(), expiresAt, userFeatures);
-            } else {
-                logger.warn("Incorrect password for email: {}", email);
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
-            }
-        } else {
+        if (userOptional.isEmpty()) {
             logger.warn("User not found for email: {}", email);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
         }
+
+        User user = userOptional.get();
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            logger.warn("Incorrect password for email: {}", email);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
+        }
+
+        logger.info("Login successful for email: {}", email);
+
+        String roleName = user.getRole().getRoleName();
+        Long roleId = Long.valueOf(user.getRole().getIdRole());
+
+        String token = jwtUtil.generateToken(email, roleName);
+        String refreshToken = jwtUtil.generateRefreshToken(email);
+
+        Long expiresAt = jwtUtil.extractExpiration(token).getTime().getTime();
+
+        List<String> userFeatures = roleFeatureService.getFeaturesByRoleId(roleId);
+
+        return new AuthResponse(token, refreshToken, user.getUsername(), expiresAt, userFeatures);
     }
 
     public boolean isUserAuthenticated() {

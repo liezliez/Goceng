@@ -21,8 +21,8 @@ import io.jsonwebtoken.JwtException;
 import id.co.bcaf.goceng.services.PasswordResetService;
 
 import java.time.ZoneId;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -178,10 +178,33 @@ public class AuthController {
     }
 
     @GetMapping("/check-authorities")
-    public ResponseEntity<String> checkAuthorities(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Map<String, Object>> checkAuthorities(
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest request) {
+
         Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
-        authorities.forEach(auth -> System.out.println("Authority: " + auth.getAuthority()));
-        return ResponseEntity.ok("Check console for authorities");
+        List<String> authorityList = authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        // Extract JWT token from Authorization header
+        String authorizationHeader = request.getHeader("Authorization");
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("username", userDetails.getUsername());
+        response.put("authorities", authorityList);
+        response.put("authorizationHeader", authorizationHeader);
+
+        // Optionally, if you want to return all headers as a Map<String, String>
+        Enumeration<String> headerNames = request.getHeaderNames();
+        Map<String, String> headersMap = new HashMap<>();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            headersMap.put(headerName, request.getHeader(headerName));
+        }
+        response.put("allHeaders", headersMap);
+
+        return ResponseEntity.ok(response);
     }
 
 }
