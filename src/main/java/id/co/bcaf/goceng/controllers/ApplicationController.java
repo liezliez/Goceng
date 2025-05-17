@@ -29,10 +29,8 @@ public class ApplicationController {
             @PathVariable UUID id,
             @RequestBody ApprovalRequest approvalRequest
     ) {
-        System.out.println("Received ApprovalRequest JSON: approved = " + approvalRequest.isApproved() + ", note = " + approvalRequest.getNote());
         return ResponseEntity.ok(applicationService.marketingApprove(id, approvalRequest.isApproved(), approvalRequest.getNote()));
     }
-
 
     @PutMapping("/{id}/approve/branch-manager")
     public ResponseEntity<ApplicationResponse> branchManagerApprove(
@@ -60,6 +58,12 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.getApplicationById(id));
     }
 
+    @GetMapping("/by-customer-or-user/{id}")
+    public ResponseEntity<List<ApplicationResponse>> getApplicationsByCustomerOrUserId(@PathVariable UUID id) {
+        List<ApplicationResponse> applications = applicationService.getApplicationsByCustomerOrUserId(id);
+        return ResponseEntity.ok(applications);
+    }
+
     @PutMapping("/{id}/reject")
     public ResponseEntity<ApplicationResponse> rejectApplication(
             @PathVariable UUID id,
@@ -68,6 +72,4 @@ public class ApplicationController {
     ) {
         return ResponseEntity.ok(applicationService.rejectApplication(id, role, note));
     }
-
-
 }

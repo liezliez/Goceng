@@ -290,4 +290,30 @@ public class ApplicationService {
                 ApprovalRole.BACK_OFFICE,
                 note);
     }
+
+    public List<ApplicationResponse> getApplicationsByCustomerOrUserId(UUID id) {
+        // First, try to find Customer by ID
+        Optional<Customer> customerOpt = customerRepo.findById(id);
+        if (customerOpt.isPresent()) {
+            return applicationRepo.findByCustomer(customerOpt.get())
+                    .stream()
+                    .map(this::convertToResponse)
+                    .toList();
+        }
+
+        // If not found, try to find User and map to Customer
+        Optional<User> userOpt = userRepo.findById(id);
+        if (userOpt.isPresent()) {
+            Optional<Customer> customerByUser = customerRepo.findByUser_IdUser(id);
+            if (customerByUser.isPresent()) {
+                return applicationRepo.findByCustomer(customerByUser.get())
+                        .stream()
+                        .map(this::convertToResponse)
+                        .toList();
+            }
+        }
+
+        throw new CustomerNotFoundException("No applications found for provided customer/user ID");
+    }
+
 }
