@@ -111,7 +111,7 @@ public class LoanService {
     }
 
     public List<LoanLog> getLoanLogs(UUID loanId) {
-        return loanLogRepository.findByLoanIdOrderByTimestampDesc(loanId);
+        return loanLogRepository.findByLoan_IdOrderByTimestampDesc(loanId);
     }
 
     private void logChange(Loan loan, String field, String oldVal, String newVal, String username) {

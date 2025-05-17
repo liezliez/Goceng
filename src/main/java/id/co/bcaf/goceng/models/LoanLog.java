@@ -15,8 +15,8 @@ import java.util.UUID;
 public class LoanLog {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id_loan_log")
+    @GeneratedValue
+    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
     @ManyToOne
@@ -24,7 +24,7 @@ public class LoanLog {
     private Loan loan;
 
     @Column(name = "action", nullable = false)
-    private String action; // e.g., UPDATE, CREATE, DELETE
+    private String action;
 
     @Column(name = "field_name")
     private String fieldName;
@@ -40,4 +40,14 @@ public class LoanLog {
 
     @Column(name = "performed_by")
     private String performedBy;
+
+    @PrePersist
+    public void prePersist() {
+        if (timestamp == null) {
+            timestamp = LocalDateTime.now();
+        }
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 }

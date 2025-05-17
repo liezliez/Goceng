@@ -16,9 +16,11 @@ import java.util.UUID;
 @Builder
 @Table(name = "application")
 public class Application {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id_application", updatable = false, nullable = false)
+    @Column(name = "id", updatable = false, nullable = false)
+
     private UUID id;
 
     @ManyToOne
@@ -46,7 +48,6 @@ public class Application {
     @Column(name = "plafon_limit")
     private BigDecimal plafonLimit;
 
-    // Updated field names for clarity
     @ManyToOne
     @JoinColumn(name = "id_marketing_assigned")
     private User marketingAssigned;
@@ -86,18 +87,13 @@ public class Application {
     @Column(name = "back_office_nip")
     private String backOfficeNip;
 
-
-    // Tenor of the loan
     @Column(nullable = false)
     private Integer tenor;
 
-    // Link to plafon
     @ManyToOne
-    @JoinColumn(name = "id", nullable = false)
+    @JoinColumn(name = "id_plafon", nullable = false)
     private Plafon plafon;
 
-
-    // NIP of the approvers
     @Column(name = "nip_marketing", length = 50)
     private String nipMarketing;
 
@@ -107,12 +103,10 @@ public class Application {
     @Column(name = "nip_back_office", length = 50)
     private String nipBackOffice;
 
-    // Reference to Branch entity
     @ManyToOne
     @JoinColumn(name = "id_branch")
     private Branch branch;
 
-    // In Application.java
     public UUID getUserId() {
         return customer.getUser().getIdUser();
     }
@@ -121,7 +115,3 @@ public class Application {
         return customer.getUser().getName();
     }
 }
-
-
-// Note dari Marketing, BM, BO
-// Bikin DTO untuk semua detail pengajuan (application)

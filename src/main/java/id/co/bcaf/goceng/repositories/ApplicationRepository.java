@@ -11,10 +11,10 @@ import java.util.UUID;
 
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, UUID> {
-    // You can add custom query methods here if needed
+
+    // Checks if a customer has an application in any of the given statuses
     boolean existsByCustomerAndStatusIn(Customer customer, List<ApplicationStatus> statusList);
 
+    // Retrieves all applications for a given customer
     List<Application> findByCustomer(Customer customer);
-
-
 }

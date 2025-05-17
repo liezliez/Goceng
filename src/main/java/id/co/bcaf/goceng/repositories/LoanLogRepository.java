@@ -7,6 +7,5 @@ import java.util.List;
 import java.util.UUID;
 
 public interface LoanLogRepository extends JpaRepository<LoanLog, UUID> {
-    List<LoanLog> findByLoanIdOrderByTimestampDesc(UUID loanId);
+    List<LoanLog> findByLoan_IdOrderByTimestampDesc(UUID loanId);
 }
-
