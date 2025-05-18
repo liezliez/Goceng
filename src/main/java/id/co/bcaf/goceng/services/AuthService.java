@@ -74,4 +74,5 @@ public class AuthService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null && authentication.isAuthenticated();
     }
+
 }

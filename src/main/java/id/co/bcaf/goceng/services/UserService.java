@@ -130,7 +130,7 @@ public class UserService {
 
     public Map<AccountStatus, Long> countUsersGroupedByStatus() {
         return userRepository.findAll().stream()
-                .collect(Collectors.groupingBy(User::getStatus, Collectors.counting()));
+                .collect(Collectors.groupingBy(User::getAccountStatus, Collectors.counting()));
     }
 
     public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {

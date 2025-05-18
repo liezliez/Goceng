@@ -63,12 +63,14 @@ public class JwtFilter extends GenericFilterBean {
         logger.info("JWT Filter triggered for URI: {}", requestURI);
 
         if (isPublicEndpoint(requestURI)) {
+            logger.info("Request URI '{}' is public. Skipping JWT validation.", requestURI);
             chain.doFilter(request, response);
             return;
         }
 
         try {
             String bearerToken = httpRequest.getHeader("Authorization");
+            logger.debug("Authorization header: {}", bearerToken);
 
             if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
                 logger.warn("Missing or invalid Authorization header");
@@ -86,7 +88,7 @@ public class JwtFilter extends GenericFilterBean {
             }
 
             if (blacklistedTokenRepository.existsByToken(token)) {
-                logger.warn("Blacklisted token: {}", token);
+                logger.warn("Blacklisted token detected: {}", token);
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Blacklisted token");
                 return;
             }
@@ -94,8 +96,10 @@ public class JwtFilter extends GenericFilterBean {
             String email = jwtUtil.extractEmail(token);
             Date expiration = jwtUtil.getExpirationDateFromToken(token);
 
+            logger.debug("Token email: {}, expiration: {}", email, expiration);
+
             if (email == null || expiration == null || !jwtUtil.validateToken(token, email)) {
-                logger.warn("Invalid token: email={}, expiration={}", email, expiration);
+                logger.warn("Invalid token detected. email={}, expiration={}", email, expiration);
                 httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;
             }
@@ -106,10 +110,18 @@ public class JwtFilter extends GenericFilterBean {
                 return;
             }
 
+            logger.info("Loading user details for email: {}", email);
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            if (userDetails == null) {
+                logger.warn("UserDetails not found for email: {}", email);
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User not found");
+                return;
+            }
+
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            logger.info("User authenticated: {}", email);
 
         } catch (Exception e) {
             logger.error("JWT authentication failed: {}", e.getMessage(), e);

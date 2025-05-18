@@ -7,17 +7,22 @@ import id.co.bcaf.goceng.enums.ApprovalRole;
 import id.co.bcaf.goceng.exceptions.*;
 import id.co.bcaf.goceng.models.*;
 import id.co.bcaf.goceng.repositories.*;
+import id.co.bcaf.goceng.securities.CustomUserDetails;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -38,11 +43,25 @@ public class ApplicationService {
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
+            logger.warn("Authentication is null or not authenticated");
             throw new UserNotAuthenticatedException("User is not authenticated");
         }
-        return userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new UserNotAuthenticatedException("User not found: " + auth.getName()));
+
+        Object principal = auth.getPrincipal();
+        logger.info("Auth principal: {}", principal);
+
+        String email = auth.getName();
+
+        logger.info("Authenticated user email: {}", email);
+
+        return userRepo.findByEmail(email)
+                .orElseThrow(() -> {
+                    logger.warn("No user found for email: {}", email);
+                    return new UserNotAuthenticatedException("User not found: " + email);
+                });
     }
+
+
 
     @Transactional
     public ApplicationResponse create(ApplicationRequest req) {
@@ -112,6 +131,7 @@ public class ApplicationService {
         }
     }
 
+
     public List<ApplicationResponse> getAllApplications() {
         return applicationRepo.findAll().stream()
                 .map(this::convertToResponse)
@@ -123,6 +143,40 @@ public class ApplicationService {
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
         return convertToResponse(app);
     }
+
+    public List<Application> getApplicationsByCurrentUserBranch() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth != null && auth.isAuthenticated()) {
+            Object principal = auth.getPrincipal();
+
+            if (principal instanceof CustomUserDetails) {
+                CustomUserDetails userDetails = (CustomUserDetails) principal;
+                String email = userDetails.getUsername();
+
+                User user = userRepo.findByEmail(email)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+                UUID branchId = user.getBranch().getId();
+                return applicationRepo.findByBranch_Id(branchId);
+            }
+        }
+
+        // Return empty list or throw exception if unauthenticated or principal unexpected
+        return List.of();
+    }
+
+    // Get applications by current user's customer ID (if ROLE_CUSTOMER) or user ID
+    public List<Application> getApplicationsByCustomerOrUserId(UUID id) {
+        return Stream.of(
+                        applicationRepo.findByCustomerId(id),
+                        applicationRepo.findByCustomer_User_idUser(id)
+                ).flatMap(List::stream)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+
 
     @Transactional
     public ApplicationResponse approveApplication(UUID id, boolean isApproved, ApplicationStatus currentStatus,
@@ -151,7 +205,12 @@ public class ApplicationService {
 
     @Transactional
     public ApplicationResponse rejectApplication(UUID id, ApprovalRole role, String note) {
-        return approveApplication(id, false, null, null, role, note);
+        ApplicationStatus currentStatus = switch (role) {
+            case MARKETING -> ApplicationStatus.PENDING_MARKETING;
+            case BRANCH_MANAGER -> ApplicationStatus.PENDING_BRANCH_MANAGER;
+            case BACK_OFFICE -> ApplicationStatus.PENDING_BACK_OFFICE;
+        };
+        return approveApplication(id, false, currentStatus, null, role, note);
     }
 
     private void validateCurrentStatus(Application app, ApplicationStatus expectedStatus) {
@@ -290,30 +349,4 @@ public class ApplicationService {
                 ApprovalRole.BACK_OFFICE,
                 note);
     }
-
-    public List<ApplicationResponse> getApplicationsByCustomerOrUserId(UUID id) {
-        // First, try to find Customer by ID
-        Optional<Customer> customerOpt = customerRepo.findById(id);
-        if (customerOpt.isPresent()) {
-            return applicationRepo.findByCustomer(customerOpt.get())
-                    .stream()
-                    .map(this::convertToResponse)
-                    .toList();
-        }
-
-        // If not found, try to find User and map to Customer
-        Optional<User> userOpt = userRepo.findById(id);
-        if (userOpt.isPresent()) {
-            Optional<Customer> customerByUser = customerRepo.findByUser_IdUser(id);
-            if (customerByUser.isPresent()) {
-                return applicationRepo.findByCustomer(customerByUser.get())
-                        .stream()
-                        .map(this::convertToResponse)
-                        .toList();
-            }
-        }
-
-        throw new CustomerNotFoundException("No applications found for provided customer/user ID");
-    }
-
 }

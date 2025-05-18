@@ -17,4 +17,17 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     // Retrieves all applications for a given customer
     List<Application> findByCustomer(Customer customer);
+
+//    List<Application> findByBranchId(UUID branchId);
+
+    List<Application> findByBranch_Id(UUID branchId);
+
+
+    List<Application> findByCustomerId(UUID customerId);
+
+    List<Application> findByStatus(ApplicationStatus status);
+    List<Application> findByStatusIn(List<ApplicationStatus> statuses);
+
+    List<Application> findByCustomer_User_idUser(UUID idUser);
+
 }

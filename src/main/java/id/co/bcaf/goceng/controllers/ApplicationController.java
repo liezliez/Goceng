@@ -4,6 +4,7 @@ import id.co.bcaf.goceng.dto.ApplicationRequest;
 import id.co.bcaf.goceng.dto.ApplicationResponse;
 import id.co.bcaf.goceng.dto.ApprovalRequest;
 import id.co.bcaf.goceng.enums.ApprovalRole;
+import id.co.bcaf.goceng.models.Application;
 import id.co.bcaf.goceng.services.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,13 +12,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 
 @RestController
-@RequestMapping("/api/applications")
+@RequestMapping("/applications")
 @RequiredArgsConstructor
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+
 
     @PostMapping
     public ResponseEntity<ApplicationResponse> create(@RequestBody ApplicationRequest request) {
@@ -53,6 +57,17 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.getAllApplications());
     }
 
+    @GetMapping("/branch")
+    public ResponseEntity<List<ApplicationResponse>> getApplicationsByCurrentUserBranch() {
+        List<Application> applications = applicationService.getApplicationsByCurrentUserBranch();
+        List<ApplicationResponse> responseList = applications.stream()
+                .map(ApplicationResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseList);
+    }
+
+
+
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponse> getApplicationById(@PathVariable UUID id) {
         return ResponseEntity.ok(applicationService.getApplicationById(id));
@@ -60,9 +75,13 @@ public class ApplicationController {
 
     @GetMapping("/by-customer-or-user/{id}")
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByCustomerOrUserId(@PathVariable UUID id) {
-        List<ApplicationResponse> applications = applicationService.getApplicationsByCustomerOrUserId(id);
-        return ResponseEntity.ok(applications);
+        List<Application> applications = applicationService.getApplicationsByCustomerOrUserId(id);
+        List<ApplicationResponse> responseList = applications.stream()
+                .map(ApplicationResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseList);
     }
+
 
     @PutMapping("/{id}/reject")
     public ResponseEntity<ApplicationResponse> rejectApplication(
