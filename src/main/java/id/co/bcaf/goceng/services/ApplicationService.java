@@ -63,57 +63,57 @@ public class ApplicationService {
 
 
 
-    @Transactional
-    public ApplicationResponse create(ApplicationRequest req) {
-        Customer customer = customerRepo.findById(req.getCustomerId())
-                .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
-        checkForPendingApplications(customer);
-        validateCustomerDataCompleted(customer);
+        @Transactional
+        public ApplicationResponse create(ApplicationRequest req) {
+            Customer customer = customerRepo.findById(req.getCustomerId())
+                    .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
+            checkForPendingApplications(customer);
+            validateCustomerDataCompleted(customer);
 
-        Branch branch = branchRepo.findById(req.getBranchId())
-                .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
+            Branch branch = branchRepo.findById(req.getBranchId())
+                    .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
         logger.info("Found branch for application: {}", branch.getId());
 
-        Plafon plafon = plafonRepo.findFirstByOrderByPlafonAmountAsc()
-                .orElseThrow(() -> new RuntimeException("No loan limit available"));
+            Plafon plafon = plafonRepo.findFirstByOrderByPlafonAmountAsc()
+                    .orElseThrow(() -> new RuntimeException("No loan limit available"));
 
-        validateLoanAmount(req.getAmount(), plafon.getPlafonAmount());
+            validateLoanAmount(req.getAmount(), plafon.getPlafonAmount());
 
         logger.info("Creating application with branchId: {}", req.getBranchId());
 
 
 
-        Application app = Application.builder()
-                .customer(customer)
-                .amount(req.getAmount())
-                .purpose(req.getPurpose())
-                .tenor(req.getTenor())
-                .branch(branch)
-                .status(ApplicationStatus.PENDING_MARKETING)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .plafon(plafon)
-                .interestRate(plafon.getInterestRate())
-                .plafonType(plafon.getPlafonType())
-                .plafonLimit(plafon.getPlafonAmount())
-                .build();
+            Application app = Application.builder()
+                    .customer(customer)
+                    .amount(req.getAmount())
+                    .purpose(req.getPurpose())
+                    .tenor(req.getTenor())
+                    .branch(branch)
+                    .status(ApplicationStatus.PENDING_MARKETING)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .plafon(plafon)
+                    .interestRate(plafon.getInterestRate())
+                    .plafonType(plafon.getPlafonType())
+                    .plafonLimit(plafon.getPlafonAmount())
+                    .build();
 
-        return convertToResponse(applicationRepo.save(app));
-    }
-
-    private void validateCustomerDataCompleted(Customer customer) {
-        boolean incomplete = Stream.of(
-                customer.getName(), customer.getNik(), customer.getPlaceOfBirth(),
-                customer.getTelpNo(), customer.getAddress(), customer.getMotherMaidenName(),
-                customer.getOccupation(), customer.getHomeOwnershipStatus(),
-                customer.getEmergencyCall(), customer.getAccountNo(),
-                customer.getUrlKtp(), customer.getUrlSelfie()
-        ).anyMatch(this::isEmpty) || customer.getDateOfBirth() == null || customer.getSalary() == null || customer.getCreditLimit() == null;
-
-        if (incomplete) {
-            throw new IncompleteCustomerDataException("Customer data is incomplete. Please complete all required fields before applying.");
+            return convertToResponse(applicationRepo.save(app));
         }
-    }
+
+        private void validateCustomerDataCompleted(Customer customer) {
+            boolean incomplete = Stream.of(
+                    customer.getName(), customer.getNik(), customer.getPlaceOfBirth(),
+                    customer.getTelpNo(), customer.getAddress(), customer.getMotherMaidenName(),
+                    customer.getOccupation(), customer.getHomeOwnershipStatus(),
+                    customer.getEmergencyCall(), customer.getAccountNo(),
+                    customer.getUrlKtp(), customer.getUrlSelfie()
+            ).anyMatch(this::isEmpty) || customer.getDateOfBirth() == null || customer.getSalary() == null || customer.getCreditLimit() == null;
+
+            if (incomplete) {
+                throw new IncompleteCustomerDataException("Customer data is incomplete. Please complete all required fields before applying.");
+            }
+        }
 
     private boolean isEmpty(String str) {
         return str == null || str.trim().isEmpty();

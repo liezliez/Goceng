@@ -27,6 +27,8 @@ public class CustomerService {
     private UserRepository userRepository;
 
     public CustomerResponse createCustomer(CustomerRequest request) {
+
+
         User user = userRepository.findById(UUID.fromString(request.getUserId()))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 

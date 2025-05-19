@@ -78,31 +78,36 @@ public class RoleFeatureController {
      */
     @GetMapping("/features")
     public ResponseEntity<?> getFeaturesForCurrentUser() {
-        // Get current user's email from Security Context
-        String email = getCurrentUserEmail();
+        var context = SecurityContextHolder.getContext();
+        var authentication = context.getAuthentication();
 
-        if (email == null)  {
+        if (authentication == null || authentication.getPrincipal() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authenticated.");
         }
 
-        // Load user details and get role
-        Optional<UserDetails> userDetails = getUserDetails(email);
-        if (userDetails.isEmpty()) {
+        try {
+            String username = authentication.getPrincipal().toString();
+            UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
+
+            var authorities = userDetails.getAuthorities();
+            if (authorities.isEmpty()) {
+                return ResponseEntity.badRequest().body("No role associated with the user.");
+            }
+
+            String role = authorities.iterator().next().getAuthority().replace("ROLE_", "");
+            List<String> features = roleFeatureService.getFeaturesByRole(role);
+
+            if (features.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No features found for this role.");
+            }
+
+            return ResponseEntity.ok(features);
+
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
-
-        String roleName = getRoleFromUserDetails(userDetails.get());
-        if (roleName == null || roleName.isEmpty()) {
-            return ResponseEntity.badRequest().body("No role associated with the user.");
-        }
-
-        List<String> features = roleFeatureService.getFeaturesByRole(roleName);
-        if (features.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No features found for this role.");
-        }
-
-        return ResponseEntity.ok(features);
     }
+
 
     private String getCurrentUserEmail() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();

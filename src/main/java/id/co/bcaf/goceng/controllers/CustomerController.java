@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/customers")
+@RequestMapping("/customers")
 public class CustomerController {
 
     private final CustomerService customerService;
@@ -21,8 +21,12 @@ public class CustomerController {
 
     @PostMapping
     public ResponseEntity<CustomerResponse> create(@RequestBody CustomerRequest request) {
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(null); // or a proper error response
+        }
         return ResponseEntity.ok(customerService.createCustomer(request));
     }
+
 
     @GetMapping
     public ResponseEntity<List<CustomerResponse>> getAll() {
