@@ -40,23 +40,20 @@ public class User implements UserDetails {
     @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_branch")
     @JsonIgnore
     private Branch branch;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference("user-employee")
     private Employee employee;
 
-    public User(UUID uuid, String active, String mail, String wellington5, String $2a$10$lWw4y4z9aYLIcAMfJzSaeOKc2D8euLhTo5Jub6fOyOMTnum8PkIRy, Branch bandung, Role role) {
-    }
-
-    // ✅ UserDetails Interface Implementation
+    // UserDetails implementation
 
     @Override
     @JsonIgnore
@@ -94,12 +91,17 @@ public class User implements UserDetails {
         return accountStatus == AccountStatus.ACTIVE;
     }
 
-    // ✅ Optional getter for generic status access
+    // Convenience method for checking deletion status
+    @JsonIgnore
+    public boolean isDeleted() {
+        return accountStatus == AccountStatus.DELETED;
+    }
+
+    // Optional getter for generic account status access
     public AccountStatus getStatus() {
         return accountStatus;
     }
 
-    // ✅ Safer toString() to prevent recursion issues
     @Override
     public String toString() {
         return "User{" +
@@ -110,10 +112,4 @@ public class User implements UserDetails {
                 ", role=" + (role != null ? role.getRoleName() : null) +
                 '}';
     }
-
-    @JsonIgnore
-    public boolean isDeleted() {
-        return accountStatus == AccountStatus.DELETED;
-    }
-
 }

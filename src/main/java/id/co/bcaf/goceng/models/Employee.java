@@ -28,17 +28,19 @@ public class Employee {
 
     @ManyToOne
     @JoinColumn(name = "id_branch")
-    @JsonBackReference  // Prevent recursion with Branch (parent side)
+    @JsonBackReference("branch-employee")  // Explicit name to match Branch side
     private Branch branch;
+
+    @ManyToOne
+    @JoinColumn(name = "id_user")
+    @JsonBackReference("user-employee")    // Matches User side
+    private User user;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private WorkStatus workStatus;
 
-    @OneToOne
-    @JoinColumn(name = "id_user", nullable = false, unique = true)
-    @JsonBackReference  // Prevent recursion with User (back reference)
-    private User user;
 
     // Optimistic locking
     @Version

@@ -1,14 +1,12 @@
 package id.co.bcaf.goceng.controllers;
 
-import id.co.bcaf.goceng.dto.RegisterRequest;
-import id.co.bcaf.goceng.dto.RoleDto;
-import id.co.bcaf.goceng.dto.UserRequest;
-import id.co.bcaf.goceng.dto.UserResponse;
+import id.co.bcaf.goceng.dto.*;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -39,40 +37,32 @@ public class UserController {
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    @GetMapping("/test-access")
-    public ResponseEntity<String> testAccess(Principal principal) {
-        return ResponseEntity.ok("You are: " + principal.getName());
-    }
-
-    @PutMapping("/test-put")
-    public ResponseEntity<String> testPut() {
-        return ResponseEntity.ok("PUT works");
-    }
-
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody @Valid RegisterRequest request) {
         log.info("Registering new customer: {}", request.getEmail());
-
-        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null || request.getNik() == null) {
-            return ResponseEntity.badRequest().body("Missing required fields.");
-        }
 
         try {
             UserRequest userRequest = new UserRequest();
             userRequest.setName(request.getName());
             userRequest.setEmail(request.getEmail());
             userRequest.setPassword(request.getPassword());
-            userRequest.setNik(request.getNik());  // add this line!
+            userRequest.setNik(request.getNik());
 
-            UserResponse registeredUserResponse = userService.registerUser(userRequest);
+            RegisterResponse registerResponse = userService.registerUser(userRequest);
 
-            return ResponseEntity.ok(registeredUserResponse);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", registerResponse));
+        } catch (DataIntegrityViolationException ex) {
+            log.error("Duplicate entry error: {}", ex.getMessage(), ex);
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, "Registration failed: email or NIK already registered", null));
         } catch (Exception ex) {
-            log.error("Error during registration: {}", ex.getMessage(), ex);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed.");
+            log.error("Unexpected error during registration: {}", ex.getMessage(), ex);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, "Registration failed due to a server error", null));
         }
     }
-
 
 
     @GetMapping("/list")
@@ -116,12 +106,13 @@ public class UserController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-//    @PreAuthorize("hasAuthority('CREATE_USER')")
-    public ResponseEntity<UserResponse> createUser(@RequestBody @Valid User user, @RequestParam UUID branchId) {
-        log.info("Creating user: {}", user.getEmail());
-        User createdUser = userService.createUser(user, branchId);
+// @PreAuthorize("hasAuthority('CREATE_USER')")
+    public ResponseEntity<UserResponse> createUserFromRequest(@RequestBody @Valid CreateUserRequest request) {
+        log.info("Creating user: {}", request.getEmail());
+        User createdUser = userService.createUserFromRequest(request);
         return ResponseEntity.ok(toUserResponse(createdUser));
     }
+
 
     @PutMapping("/id/{id}")
 //    @PreAuthorize("hasAuthority('EDIT_USER')")

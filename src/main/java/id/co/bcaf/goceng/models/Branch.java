@@ -41,19 +41,24 @@ public class Branch {
     @Column(nullable = false)
     private Double longitude;
 
-    // Assuming you might want to add relationships in the future:
-
-    // Example of one-to-many relationship to another branch (e.g., parent-child branches)
+    // Self-referencing OneToMany relationship for child branches
     @OneToMany(mappedBy = "parentBranch")
-    @JsonManagedReference  // Prevent recursive serialization by marking this side as managed
+    @JsonManagedReference("branch-childBranches")  // Named reference to avoid conflicts
     private List<Branch> childBranches;
 
-    // Example of many-to-one relationship (e.g., branch manager or employee belongs to a branch)
+    // Self-referencing ManyToOne relationship for parent branch
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
-    @JsonBackReference  // Prevent recursive serialization by marking this side as back
+    @JsonBackReference("branch-childBranches")    // Must match the managed reference name
     private Branch parentBranch;
 
-    public Branch(UUID uuid, String jakartaPusat, String s, String jakarta, String dkiJakarta, double v, double v1) {
+    public Branch(UUID id, String name, String address, String city, String province, Double latitude, Double longitude) {
+        this.id = id;
+        this.name = name;
+        this.address = address;
+        this.city = city;
+        this.province = province;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 }

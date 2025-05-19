@@ -67,8 +67,15 @@ public class EmployeeService {
         employee.setWorkStatus(WorkStatus.ACTIVE);
         employee.setNIP(generateNIP(role));
 
-        return employeeRepository.save(employee);
+        Employee savedEmployee = employeeRepository.save(employee);
+
+        // Set the reverse side for bidirectional mapping
+        user.setEmployee(savedEmployee);
+        userRepository.save(user);
+
+        return savedEmployee;
     }
+
 
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();

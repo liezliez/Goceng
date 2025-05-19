@@ -2,6 +2,7 @@ package id.co.bcaf.goceng.exceptions;
 
 import id.co.bcaf.goceng.dto.ApiResponse;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -78,6 +79,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<String>> handleBranchNotFound(BranchNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<String>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        String message = "Data integrity violation.";
+
+        // Check if the exception cause message contains your unique constraint name
+        if (ex.getCause() != null && ex.getCause().getMessage() != null) {
+            String causeMessage = ex.getCause().getMessage();
+            if (causeMessage.contains("UKphnaxr6qwa6vv0ped258ggkbd")) {
+                message = "Registration failed: phone number already registered.";
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse<>(false, message, null));
     }
 
 

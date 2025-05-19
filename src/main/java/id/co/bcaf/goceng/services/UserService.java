@@ -1,8 +1,6 @@
 package id.co.bcaf.goceng.services;
 
-import id.co.bcaf.goceng.dto.CustomerResponse;
-import id.co.bcaf.goceng.dto.UserRequest;
-import id.co.bcaf.goceng.dto.UserResponse;
+import id.co.bcaf.goceng.dto.*;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.models.Role;
@@ -10,6 +8,8 @@ import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.BranchRepository;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,17 +24,20 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmployeeService employeeService;
+
     @Autowired
     private CustomerService customerService;
 
     public UserService(UserRepository userRepository,
                        RoleRepository roleRepository,
                        BranchRepository branchRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder, EmployeeService employeeService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
+        this.employeeService = employeeService;
     }
 
     public List<User> getAllUsers() {
@@ -53,19 +56,7 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-//    public User registerUser(User user, UUID branchId) {
-//        Role defaultRole = getRoleById(2); // Default: ROLE_CUSTOMER
-//        Branch branch = getBranchById(branchId);
-//
-//        user.setRole(defaultRole);
-//        user.setAccountStatus(AccountStatus.ACTIVE);
-//        user.setPassword(passwordEncoder.encode(user.getPassword()));
-//        user.setBranch(branch);
-//
-//        return userRepository.save(user);
-//    }
-
-    public UserResponse registerUser(UserRequest request) {
+    public RegisterResponse registerUser(UserRequest request) {
         Role defaultRole = getRoleById(2); // Default Role Customer
 
         User user = new User();
@@ -74,28 +65,38 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setRole(defaultRole);
-
         User savedUser = userRepository.save(user);
-
-        // Create customer from saved user, passing name and nik
         CustomerResponse customerResponse = customerService.createCustomerFromUser(savedUser, request.getName(), request.getNik());
-
-        return mapToUserResponse(savedUser);
+        UserResponse userResponse = mapToUserResponse(savedUser);
+        return new RegisterResponse(userResponse, customerResponse);
     }
 
 
 
 
-    public User createUser(User user, UUID branchId) {
-        Role role = getRoleById(user.getRole().getIdRole());
-        Branch branch = getBranchById(branchId);
-
-        user.setRole(role);
+    @Transactional
+    public User createUserFromRequest(CreateUserRequest request) {
+        User user = new User();
+        user.setName(request.getName());   // <---- set name here
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setAccountStatus(AccountStatus.ACTIVE);
-        user.setBranch(branch);
 
-        return saveUser(user);
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found"));
+        user.setBranch(branch);
+        Role role = roleRepository.findByRoleName(request.getRole())
+                .orElseThrow(() -> new EntityNotFoundException("Role not found"));
+        user.setRole(role);
+        user = userRepository.save(user);
+
+        // Create employee for user
+        employeeService.createEmployee(user.getIdUser(), role.getIdRole());
+
+        return user;
     }
+
+
 
     private User saveUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
