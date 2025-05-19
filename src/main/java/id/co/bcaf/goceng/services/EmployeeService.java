@@ -28,7 +28,6 @@ public class EmployeeService {
     private final BranchRepository branchRepository;
     private final CustomerRepository customerRepository;
 
-    // Default branch = Bandung
     private static final UUID DEFAULT_BRANCH_ID = UUID.fromString("B43A94D7-4C5E-4F2D-8A7B-02477F36D65F");
 
     public Optional<Employee> findByUserId(UUID userId) {
@@ -40,25 +39,22 @@ public class EmployeeService {
         User user = userRepository.findById(idUser)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + idUser));
 
-        if (customerRepository.existsByUser_IdUser(idUser)) {
+        if (customerRepository.existsByUser_IdUser(idUser))
             throw new IllegalStateException("User is already a customer");
-        }
 
-        if (employeeRepository.existsByUser_IdUser(idUser)) {
+        if (employeeRepository.existsByUser_IdUser(idUser))
             throw new IllegalStateException("Employee already exists for user");
-        }
 
         Role role = roleRepository.findById(idRole)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found: " + idRole));
+
+        Branch branch = branchRepository.findById(DEFAULT_BRANCH_ID)
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found: " + DEFAULT_BRANCH_ID));
 
         user.setRole(role);
         if (user.getAccountStatus() == null) {
             user.setAccountStatus(AccountStatus.ACTIVE);
         }
-        userRepository.save(user);
-
-        Branch branch = branchRepository.findById(DEFAULT_BRANCH_ID)
-                .orElseThrow(() -> new EntityNotFoundException("Branch not found: " + DEFAULT_BRANCH_ID));
 
         Employee employee = new Employee();
         employee.setUser(user);
@@ -69,13 +65,12 @@ public class EmployeeService {
 
         Employee savedEmployee = employeeRepository.save(employee);
 
-        // Set the reverse side for bidirectional mapping
+        // Link employee to user and save user once
         user.setEmployee(savedEmployee);
         userRepository.save(user);
 
         return savedEmployee;
     }
-
 
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();
@@ -131,12 +126,11 @@ public class EmployeeService {
         String roleCode = getRoleCode(role.getRoleName());
         String prefix = year + roleCode;
 
-        Optional<Employee> lastEmployee = employeeRepository.findTopByNIPStartingWithOrderByNIPDesc(prefix);
-        int nextSequence = lastEmployee.map(e -> {
-            String nip = e.getNIP();
-            String numberPart = nip.substring(prefix.length());
-            return Integer.parseInt(numberPart) + 1;
-        }).orElse(1);
+        int nextSequence = employeeRepository.findTopByNIPStartingWithOrderByNIPDesc(prefix)
+                .map(e -> {
+                    String numberPart = e.getNIP().substring(prefix.length());
+                    return Integer.parseInt(numberPart) + 1;
+                }).orElse(1);
 
         return String.format("%s%03d", prefix, nextSequence);
     }
