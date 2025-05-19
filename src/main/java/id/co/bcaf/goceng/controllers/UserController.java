@@ -53,23 +53,27 @@ public class UserController {
     public ResponseEntity<?> registerUser(@RequestBody @Valid RegisterRequest request) {
         log.info("Registering new customer: {}", request.getEmail());
 
-        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
+        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null || request.getNik() == null) {
             return ResponseEntity.badRequest().body("Missing required fields.");
         }
 
         try {
-            User newUser = new User();
-            newUser.setName(request.getName());
-            newUser.setEmail(request.getEmail());
-            newUser.setPassword(request.getPassword());
+            UserRequest userRequest = new UserRequest();
+            userRequest.setName(request.getName());
+            userRequest.setEmail(request.getEmail());
+            userRequest.setPassword(request.getPassword());
+            userRequest.setNik(request.getNik());  // add this line!
 
-            User registeredUser = userService.registerUser(newUser, request.getBranchId());
-            return ResponseEntity.ok(toUserResponse(registeredUser));
+            UserResponse registeredUserResponse = userService.registerUser(userRequest);
+
+            return ResponseEntity.ok(registeredUserResponse);
         } catch (Exception ex) {
             log.error("Error during registration: {}", ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed.");
         }
     }
+
+
 
     @GetMapping("/list")
     public ResponseEntity<List<UserResponse>> getAllUsers() {

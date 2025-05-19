@@ -37,4 +37,6 @@ public class UserResponse {
         private UUID id;             // Changed to UUID to match entity
         private String name;
     }
+
+
 }

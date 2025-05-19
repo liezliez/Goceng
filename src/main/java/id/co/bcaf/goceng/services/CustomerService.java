@@ -7,6 +7,7 @@ import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
+import id.co.bcaf.goceng.utils.NullAwareBeanUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,21 @@ public class CustomerService {
     private EmployeeRepository employeeRepository;
     @Autowired
     private UserRepository userRepository;
+
+
+    public CustomerResponse createCustomerFromUser(User user, String name, String nik) {
+        if (employeeRepository.existsByUser_IdUser(user.getIdUser())) {
+            throw new IllegalStateException("User is already registered as an employee");
+        }
+        Customer customer = new Customer();
+        customer.setUser(user);
+        customer.setName(name);
+        customer.setNik(nik);
+
+        Customer savedCustomer = customerRepository.save(customer);
+        return mapToResponse(savedCustomer);
+    }
+
 
     public CustomerResponse createCustomer(CustomerRequest request) {
 
@@ -100,24 +116,11 @@ public class CustomerService {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        if (request.getName() != null) customer.setName(request.getName());
-        if (request.getNik() != null) customer.setNik(request.getNik());
-        if (request.getDateOfBirth() != null) customer.setDateOfBirth(request.getDateOfBirth());
-        if (request.getPlaceOfBirth() != null) customer.setPlaceOfBirth(request.getPlaceOfBirth());
-        if (request.getTelpNo() != null) customer.setTelpNo(request.getTelpNo());
-        if (request.getAddress() != null) customer.setAddress(request.getAddress());
-        if (request.getMotherMaidenName() != null) customer.setMotherMaidenName(request.getMotherMaidenName());
-        if (request.getOccupation() != null) customer.setOccupation(request.getOccupation());
-        if (request.getSalary() != null) customer.setSalary(request.getSalary());
-        if (request.getHomeOwnershipStatus() != null) customer.setHomeOwnershipStatus(request.getHomeOwnershipStatus());
-        if (request.getEmergencyCall() != null) customer.setEmergencyCall(request.getEmergencyCall());
-        if (request.getCreditLimit() != null) customer.setCreditLimit(request.getCreditLimit());
-        if (request.getAccountNo() != null) customer.setAccountNo(request.getAccountNo());
-        if (request.getUrlKtp() != null) customer.setUrlKtp(request.getUrlKtp());
-        if (request.getUrlSelfie() != null) customer.setUrlSelfie(request.getUrlSelfie());
+        NullAwareBeanUtils.copyNonNullProperties(request, customer);
 
         return mapToResponse(customerRepository.save(customer));
     }
+
 
 
     public void deleteCustomer(UUID id) {

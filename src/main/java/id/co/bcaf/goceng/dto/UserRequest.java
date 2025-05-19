@@ -18,7 +18,8 @@ public class UserRequest {
     @NotBlank
     private String email;
 
-    // Remove @NotBlank to allow null or empty passwords (optional)
+    private String nik;
+
     private String password;
 
     private AccountStatus account_status;
@@ -26,4 +27,6 @@ public class UserRequest {
     private Integer idRole;
 
     private UUID idBranch;
+
+
 }

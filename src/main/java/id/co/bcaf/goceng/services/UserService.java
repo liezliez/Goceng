@@ -1,6 +1,8 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.dto.CustomerResponse;
 import id.co.bcaf.goceng.dto.UserRequest;
+import id.co.bcaf.goceng.dto.UserResponse;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.models.Role;
@@ -8,6 +10,7 @@ import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.BranchRepository;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +24,8 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
+    @Autowired
+    private CustomerService customerService;
 
     public UserService(UserRepository userRepository,
                        RoleRepository roleRepository,
@@ -48,17 +53,38 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-    public User registerUser(User user, UUID branchId) {
-        Role defaultRole = getRoleById(2); // Default: ROLE_CUSTOMER
-        Branch branch = getBranchById(branchId);
+//    public User registerUser(User user, UUID branchId) {
+//        Role defaultRole = getRoleById(2); // Default: ROLE_CUSTOMER
+//        Branch branch = getBranchById(branchId);
+//
+//        user.setRole(defaultRole);
+//        user.setAccountStatus(AccountStatus.ACTIVE);
+//        user.setPassword(passwordEncoder.encode(user.getPassword()));
+//        user.setBranch(branch);
+//
+//        return userRepository.save(user);
+//    }
 
-        user.setRole(defaultRole);
+    public UserResponse registerUser(UserRequest request) {
+        Role defaultRole = getRoleById(2); // Default Role Customer
+
+        User user = new User();
+        user.setName(request.getName());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setEmail(request.getEmail());
         user.setAccountStatus(AccountStatus.ACTIVE);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setBranch(branch);
+        user.setRole(defaultRole);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Create customer from saved user, passing name and nik
+        CustomerResponse customerResponse = customerService.createCustomerFromUser(savedUser, request.getName(), request.getNik());
+
+        return mapToUserResponse(savedUser);
     }
+
+
+
 
     public User createUser(User user, UUID branchId) {
         Role role = getRoleById(user.getRole().getIdRole());
@@ -167,4 +193,40 @@ public class UserService {
             return false;
         }).orElse(false);
     }
+
+    private UserResponse mapToUserResponse(User user) {
+        UserResponse response = new UserResponse();
+        response.setId(user.getIdUser());                // UUID id
+        response.setName(user.getName());
+        response.setEmail(user.getEmail());
+        response.setAccount_status(user.getAccountStatus());
+
+        // Map Role to RoleDto
+        if (user.getRole() != null) {
+            UserResponse.RoleDto roleDto = new UserResponse.RoleDto();
+            roleDto.setId(user.getRole().getIdRole());          // Integer id
+            roleDto.setRoleName(user.getRole().getRoleName());
+            response.setRole(roleDto);
+        }
+
+        // Map Branch to BranchDto
+        if (user.getBranch() != null) {
+            UserResponse.BranchDto branchDto = new UserResponse.BranchDto();
+            branchDto.setId(user.getBranch().getId());    // UUID id
+            branchDto.setName(user.getBranch().getName());
+            response.setBranch(branchDto);
+        }
+
+        // Map Employee to EmployeeDto if applicable
+        if (user.getEmployee() != null) {
+            UserResponse.EmployeeDto employeeDto = new UserResponse.EmployeeDto();
+            employeeDto.setId(user.getEmployee().getId()); // UUID id
+            employeeDto.setName(user.getEmployee().getName());
+            response.setEmployee(employeeDto);
+        }
+
+        return response;
+    }
+
+
 }
