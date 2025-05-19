@@ -33,9 +33,16 @@ INSERT INTO users (id, account_status, email, name, password, id_branch, id_role
   ('6E8A1D43-BDA8-4E45-8655-D276AD0CF0C0', 'ACTIVE', 'bm@example.org', 'Serena.Gutkowski', '$2a$10$Nj/izbUcFCXiUzxWf2FFL.oQoU7kpx.hdOBGyna8eNhWXGJdkCJiO', 'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F', 4),
   ('2871926D-1E9C-4E3A-9915-F5A66C2EBC25', 'ACTIVE', 'bo@example.com', 'Taurean.Wyman91', '$2a$10$db8Q10H2o5NgYoMFWI4/SeRYz2Y/DYcPOZOS6dZ4XbSkX2TjQdtTe', 'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F', 5);
 
+ INSERT INTO employees (id,nip,name,version,work_status,id_branch,id_user) VALUES
+	 (N'D0C53754-7B37-41D7-9378-1F8CC72E645E',N'2025BO001',N'Taurean.Wyman91',0,N'ACTIVE',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',N'2871926D-1E9C-4E3A-9915-F5A66C2EBC25'),
+	 (N'58B4B954-2A35-4301-84FE-ACD561D8BA0F',N'2025MK001',N'Blaze.Brekke31',0,N'ACTIVE',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',N'2A733039-184A-4B75-A92E-9ED920481C12'),
+	 (N'4AE969C1-6134-446E-B39E-F100C50F1E05',N'2025BM001',N'Serena.Gutkowski',0,N'ACTIVE',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',N'6E8A1D43-BDA8-4E45-8655-D276AD0CF0C0');
+
+
 -- Insert features
 INSERT INTO features (feature_name) VALUES
   ('VIEW_USER'),
+  ('VIEW_DASHBOARD'),
   ('VIEW_ALL_USERS'),
   ('VIEW_USER_BY_ID'),
   ('VIEW_USERS_BY_STATUS'),
@@ -61,6 +68,7 @@ SELECT r.id, f.id FROM roles r CROSS JOIN features f WHERE r.role_name = 'ROLE_S
 INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_MARKETING' AND f.feature_name IN (
   'VIEW_USER',
+  'VIEW_DASHBOARD',
   'VIEW_ALL_USERS',
   'VIEW_USER_BY_ID',
   'VIEW_USERS_BY_STATUS',
@@ -73,6 +81,7 @@ SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_MARKETING' 
 INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BRANCH_MANAGER' AND f.feature_name IN (
   'VIEW_USER',
+  'VIEW_DASHBOARD',
   'VIEW_ALL_USERS',
   'VIEW_USER_BY_ID',
   'VIEW_USERS_BY_STATUS',
@@ -89,6 +98,7 @@ SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BRANCH_MANA
 INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BACK_OFFICE' AND f.feature_name IN (
   'VIEW_USER',
+  'VIEW_DASHBOARD',
   'VIEW_ALL_USERS',
   'VIEW_USER_BY_ID',
   'VIEW_USERS_BY_STATUS',
@@ -105,6 +115,7 @@ SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BACK_OFFICE
 INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_CUSTOMER' AND f.feature_name IN (
   'VIEW_USER',
+  'VIEW_DASHBOARD',
   'VIEW_USER_BY_ID',
   'VIEW_LOAN'
 );

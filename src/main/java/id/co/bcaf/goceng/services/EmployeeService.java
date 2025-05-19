@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Year;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,43 +28,42 @@ public class EmployeeService {
     private final BranchRepository branchRepository;
     private final CustomerRepository customerRepository;
 
+    // Default branch = Bandung
+    private static final UUID DEFAULT_BRANCH_ID = UUID.fromString("B43A94D7-4C5E-4F2D-8A7B-02477F36D65F");
 
     public Optional<Employee> findByUserId(UUID userId) {
         return employeeRepository.findByUser_IdUser(userId);
     }
 
     @Transactional
-    public Employee createEmployee(UUID id_user, Integer id_role) {
-        User user = userRepository.findById(id_user)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id_user));
+    public Employee createEmployee(UUID idUser, Integer idRole) {
+        User user = userRepository.findById(idUser)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + idUser));
 
-        if (customerRepository.existsByUser_IdUser(id_user)) {
-            throw new IllegalStateException("User is already registered as a customer");
+        if (customerRepository.existsByUser_IdUser(idUser)) {
+            throw new IllegalStateException("User is already a customer");
         }
 
-        if (employeeRepository.existsByUser_IdUser(id_user)) {
-            throw new IllegalStateException("Employee already exists for this user");
+        if (employeeRepository.existsByUser_IdUser(idUser)) {
+            throw new IllegalStateException("Employee already exists for user");
         }
 
-        Role role = roleRepository.findById(id_role)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with ID: " + id_role));
+        Role role = roleRepository.findById(idRole)
+                .orElseThrow(() -> new EntityNotFoundException("Role not found: " + idRole));
+
         user.setRole(role);
-
         if (user.getAccountStatus() == null) {
             user.setAccountStatus(AccountStatus.ACTIVE);
         }
-
         userRepository.save(user);
+
+        Branch branch = branchRepository.findById(DEFAULT_BRANCH_ID)
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found: " + DEFAULT_BRANCH_ID));
 
         Employee employee = new Employee();
         employee.setUser(user);
         employee.setName(user.getName());
-
-        UUID branchId = UUID.fromString("42F47C49-01B9-423A-AA56-D160F8196641");
-        Branch branch = branchRepository.findById(branchId)
-                .orElseThrow(() -> new EntityNotFoundException("Branch not found with ID: " + branchId));
         employee.setBranch(branch);
-
         employee.setWorkStatus(WorkStatus.ACTIVE);
         employee.setNIP(generateNIP(role));
 
@@ -74,35 +74,31 @@ public class EmployeeService {
         return employeeRepository.findAll();
     }
 
-    public Optional<Employee> getEmployeeById(UUID id_employee) {
-        return employeeRepository.findById(id_employee);
+    public Optional<Employee> getEmployeeById(UUID idEmployee) {
+        return employeeRepository.findById(idEmployee);
     }
 
     @Transactional
-    public Optional<Employee> updateEmployee(UUID id_employee, EmployeeUpdateRequest request) {
-        return employeeRepository.findByIdWithLock(id_employee).map(existingEmployee -> {
-            if (request.getName() != null) {
-                existingEmployee.setName(request.getName());
-            }
+    public Optional<Employee> updateEmployee(UUID idEmployee, EmployeeUpdateRequest request) {
+        return employeeRepository.findByIdWithLock(idEmployee).map(employee -> {
+            Optional.ofNullable(request.getName()).ifPresent(employee::setName);
 
             if (request.getBranch() != null) {
                 UUID branchId = UUID.fromString(request.getBranch());
                 Branch branch = branchRepository.findById(branchId)
-                        .orElseThrow(() -> new EntityNotFoundException("Branch not found with ID: " + branchId));
-                existingEmployee.setBranch(branch);
+                        .orElseThrow(() -> new EntityNotFoundException("Branch not found: " + branchId));
+                employee.setBranch(branch);
             }
 
-            if (request.getWorkStatus() != null) {
-                existingEmployee.setWorkStatus(request.getWorkStatus());
-            }
+            Optional.ofNullable(request.getWorkStatus()).ifPresent(employee::setWorkStatus);
 
-            return employeeRepository.save(existingEmployee);
+            return employeeRepository.save(employee);
         });
     }
 
     @Transactional
-    public boolean deleteEmployee(UUID id_employee) {
-        return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
+    public boolean deleteEmployee(UUID idEmployee) {
+        return employeeRepository.findByIdWithLock(idEmployee).map(employee -> {
             employee.setWorkStatus(WorkStatus.INACTIVE);
             employeeRepository.save(employee);
             return true;
@@ -110,8 +106,8 @@ public class EmployeeService {
     }
 
     @Transactional
-    public boolean restoreEmployee(UUID id_employee) {
-        return employeeRepository.findByIdWithLock(id_employee).map(employee -> {
+    public boolean restoreEmployee(UUID idEmployee) {
+        return employeeRepository.findByIdWithLock(idEmployee).map(employee -> {
             employee.setWorkStatus(WorkStatus.ACTIVE);
             employeeRepository.save(employee);
             return true;
@@ -120,22 +116,22 @@ public class EmployeeService {
 
     public Employee findEmployeeById(UUID id) {
         return employeeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Employee not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found: " + id));
     }
 
     private String generateNIP(Role role) {
-        String year = String.valueOf(java.time.Year.now().getValue());
-        String roleCode = getRoleCode(role.getRoleName()); // example: ROLE_MARKETING -> MK
+        String year = String.valueOf(Year.now().getValue());
+        String roleCode = getRoleCode(role.getRoleName());
         String prefix = year + roleCode;
 
         Optional<Employee> lastEmployee = employeeRepository.findTopByNIPStartingWithOrderByNIPDesc(prefix);
-        int nextNumber = lastEmployee.map(e -> {
+        int nextSequence = lastEmployee.map(e -> {
             String nip = e.getNIP();
             String numberPart = nip.substring(prefix.length());
             return Integer.parseInt(numberPart) + 1;
         }).orElse(1);
 
-        return String.format("%s%03d", prefix, nextNumber);
+        return String.format("%s%03d", prefix, nextSequence);
     }
 
     private String getRoleCode(String roleName) {
@@ -144,8 +140,7 @@ public class EmployeeService {
             case "ROLE_BRANCH_MANAGER" -> "BM";
             case "ROLE_BACK_OFFICE" -> "BO";
             case "ROLE_SUPERADMIN" -> "SA";
-            default -> "OT"; // Other
+            default -> "OT";
         };
     }
-
 }

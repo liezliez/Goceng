@@ -72,11 +72,16 @@ public class ApplicationService {
 
         Branch branch = branchRepo.findById(req.getBranchId())
                 .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
+        logger.info("Found branch for application: {}", branch.getId());
 
         Plafon plafon = plafonRepo.findFirstByOrderByPlafonAmountAsc()
                 .orElseThrow(() -> new RuntimeException("No loan limit available"));
 
         validateLoanAmount(req.getAmount(), plafon.getPlafonAmount());
+
+        logger.info("Creating application with branchId: {}", req.getBranchId());
+
+
 
         Application app = Application.builder()
                 .customer(customer)
@@ -150,26 +155,25 @@ public class ApplicationService {
         if (auth != null && auth.isAuthenticated()) {
             Object principal = auth.getPrincipal();
 
-            if (principal instanceof CustomUserDetails) {
-                CustomUserDetails userDetails = (CustomUserDetails) principal;
-                String email = userDetails.getUsername();
-
-                User user = userRepo.findByEmail(email)
+            if (principal instanceof CustomUserDetails userDetails) {
+                User user = userRepo.findByEmail(userDetails.getUsername())
                         .orElseThrow(() -> new RuntimeException("User not found"));
+
+                if (user.getBranch() == null) {
+                    throw new RuntimeException("User branch not assigned");
+                }
 
                 UUID branchId = user.getBranch().getId();
                 return applicationRepo.findByBranch_Id(branchId);
             }
         }
-
-        // Return empty list or throw exception if unauthenticated or principal unexpected
         return List.of();
     }
 
     // Get applications by current user's customer ID (if ROLE_CUSTOMER) or user ID
     public List<Application> getApplicationsByCustomerOrUserId(UUID id) {
         return Stream.of(
-                        applicationRepo.findByCustomerId(id),
+                        applicationRepo.findByCustomer_Id(id),
                         applicationRepo.findByCustomer_User_idUser(id)
                 ).flatMap(List::stream)
                 .distinct()
