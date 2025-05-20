@@ -1,6 +1,8 @@
 package id.co.bcaf.goceng.controllers;
 
+import id.co.bcaf.goceng.dto.CustomerResponse;
 import id.co.bcaf.goceng.dto.LoanResponse;
+import id.co.bcaf.goceng.dto.LoanSimulationRequest;
 import id.co.bcaf.goceng.dto.LoanUpdateRequest;
 import id.co.bcaf.goceng.models.Application;
 import id.co.bcaf.goceng.models.Customer;
@@ -9,6 +11,7 @@ import id.co.bcaf.goceng.models.LoanLog;
 import id.co.bcaf.goceng.repositories.ApplicationRepository;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
 import id.co.bcaf.goceng.services.LoanService;
+import id.co.bcaf.goceng.services.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +23,15 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/loans")
+@RequestMapping("/loans")
 @RequiredArgsConstructor
 public class LoanController {
 
     private final LoanService loanService;
     private final ApplicationRepository applicationRepository;
     private final CustomerRepository customerRepository;
+    private final CustomerService customerService;
+
 
     @PostMapping("/create-from-application/{applicationId}")
     public ResponseEntity<LoanResponse> createLoan(
@@ -76,4 +81,17 @@ public class LoanController {
     ) {
         return ResponseEntity.ok(loanService.searchLoans(customerId, status, from, to));
     }
+
+    @PostMapping("/simulate")
+    public ResponseEntity<LoanResponse> simulateLoan(@RequestBody LoanSimulationRequest request) {
+        BigDecimal loanAmount = BigDecimal.valueOf(request.getLoanAmount());
+        BigDecimal interestRate = BigDecimal.valueOf(request.getInterestRate());
+        int tenor = request.getTenor();
+
+        CustomerResponse customer = customerService.getCustomerById(request.getCustomerId());
+
+        LoanResponse response = loanService.simulateLoan(loanAmount, interestRate, tenor, customer);
+        return ResponseEntity.ok(response);
+    }
+
 }

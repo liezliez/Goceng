@@ -1,5 +1,6 @@
 package id.co.bcaf.goceng.services;
 
+import id.co.bcaf.goceng.dto.CustomerResponse;
 import id.co.bcaf.goceng.exceptions.ResourceNotFoundException;
 import id.co.bcaf.goceng.models.Application;
 import id.co.bcaf.goceng.models.Loan;
@@ -63,6 +64,28 @@ public class LoanService {
 
         return numerator.divide(denominator, 2, BigDecimal.ROUND_HALF_UP);
     }
+
+    public LoanResponse simulateLoan(BigDecimal loanAmount, BigDecimal interestRate, int tenor, CustomerResponse customer) {
+        BigDecimal monthlyInstallment = calculateInstallment(loanAmount, interestRate, tenor);
+
+        return LoanResponse.builder()
+                .id(null) // No ID since it's not persisted
+                .customerId(customer.getIdCustomer())
+                .customerName(customer.getName())
+                .loanAmount(loanAmount)
+                .tenor(tenor)
+                .installment(monthlyInstallment)
+                .interest(interestRate)
+                .remainingTenor(tenor)
+                .remainingPrincipal(loanAmount)
+                .totalPaid(BigDecimal.ZERO)
+                .plafonType("Standard") // or dynamic if applicable
+                .plafonLimit(BigDecimal.valueOf(1000000))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+    }
+
 
 
     @Transactional

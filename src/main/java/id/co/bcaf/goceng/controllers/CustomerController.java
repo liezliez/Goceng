@@ -2,9 +2,13 @@ package id.co.bcaf.goceng.controllers;
 
 import id.co.bcaf.goceng.dto.CustomerRequest;
 import id.co.bcaf.goceng.dto.CustomerResponse;
+import id.co.bcaf.goceng.models.Customer;
 import id.co.bcaf.goceng.services.CustomerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Optional;
+import org.springframework.http.HttpStatus;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +49,18 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getAllCustomers());
     }
 
+    @GetMapping("/by-user/{userId}")
+    public ResponseEntity<CustomerResponse> getCustomerByUserId(@PathVariable UUID userId) {
+        Optional<Customer> customerOpt = customerService.findByUserId(userId);
+        if (customerOpt.isPresent()) {
+            CustomerResponse response = customerService.convertToCustomerResponse(customerOpt.get());
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+    }
+
+
     /**
      * Retrieve a specific customer by ID.
      * @param id UUID of the customer
@@ -64,8 +80,8 @@ public class CustomerController {
      * @return Updated CustomerResponse
      */
     @PutMapping("/{id}")
-    public ResponseEntity<CustomerResponse> update(@PathVariable UUID id, @RequestBody CustomerRequest request) {
-        CustomerResponse updatedCustomer = customerService.updateCustomer(id, request);
+    public ResponseEntity<Customer> update(@PathVariable UUID id, @RequestBody CustomerRequest request) {
+        Customer updatedCustomer = customerService.updateCustomer(id, request);
         return ResponseEntity.ok(updatedCustomer);
     }
 

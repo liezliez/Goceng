@@ -2,6 +2,7 @@ package id.co.bcaf.goceng.services;
 
 import id.co.bcaf.goceng.dto.CustomerRequest;
 import id.co.bcaf.goceng.dto.CustomerResponse;
+import id.co.bcaf.goceng.exceptions.ResourceNotFoundException;
 import id.co.bcaf.goceng.models.Customer;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -88,29 +90,29 @@ public class CustomerService {
         return mapToResponse(customer);
     }
 
-    public CustomerResponse updateCustomer(UUID id, CustomerRequest request) {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+    public Customer updateCustomer(UUID id, CustomerRequest request) {
+        Customer existing = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
-        customer.setName(request.getName());  // Added name field
-        customer.setNik(request.getNik());
-        customer.setDateOfBirth(request.getDateOfBirth());
-        customer.setPlaceOfBirth(request.getPlaceOfBirth());
-        customer.setTelpNo(request.getTelpNo());
-        customer.setAddress(request.getAddress());
-        customer.setMotherMaidenName(request.getMotherMaidenName());
-        customer.setOccupation(request.getOccupation());
-        customer.setSalary(request.getSalary());
-        customer.setHomeOwnershipStatus(request.getHomeOwnershipStatus());
-        customer.setEmergencyCall(request.getEmergencyCall());
-        customer.setCreditLimit(request.getCreditLimit());
-        customer.setAccountNo(request.getAccountNo());
-        customer.setUrlKtp(request.getUrlKtp());
-        customer.setUrlSelfie(request.getUrlSelfie());
+        existing.setName(request.getName());
+        existing.setNik(request.getNik());
+        existing.setDateOfBirth(request.getDateOfBirth());
+        existing.setPlaceOfBirth(request.getPlaceOfBirth());
+        existing.setTelpNo(request.getTelpNo());
+        existing.setAddress(request.getAddress());
+        existing.setMotherMaidenName(request.getMotherMaidenName());
+        existing.setOccupation(request.getOccupation());
+        existing.setSalary(request.getSalary());
+        existing.setHomeOwnershipStatus(request.getHomeOwnershipStatus());
+        existing.setEmergencyCall(request.getEmergencyCall());
+        existing.setCreditLimit(request.getCreditLimit());
+        existing.setAccountNo(request.getAccountNo());
+        existing.setUrlKtp(request.getUrlKtp());
+        existing.setUrlSelfie(request.getUrlSelfie());
 
-
-        return mapToResponse(customerRepository.save(customer));
+        return customerRepository.save(existing);
     }
+
 
     public CustomerResponse patchCustomer(UUID id, CustomerRequest request) {
         Customer customer = customerRepository.findById(id)
@@ -121,7 +123,9 @@ public class CustomerService {
         return mapToResponse(customerRepository.save(customer));
     }
 
-
+    public Optional<Customer> findByUserId(UUID id) {
+        return customerRepository.findByUser_IdUser(id);
+    }
 
     public void deleteCustomer(UUID id) {
         if (!customerRepository.existsById(id)) {
@@ -129,6 +133,11 @@ public class CustomerService {
         }
         customerRepository.deleteById(id);
     }
+
+    public CustomerResponse convertToCustomerResponse(Customer customer) {
+        return mapToResponse(customer);
+    }
+
 
     private CustomerResponse mapToResponse(Customer customer) {
         CustomerResponse res = new CustomerResponse();
