@@ -32,6 +32,7 @@ public class LoanService {
 
         Loan loan = Loan.builder()
                 .customer(customer)
+                .application(application)
                 .loanAmount(amount)
                 .tenor(tenor)
                 .remainingTenor(tenor)
@@ -44,6 +45,7 @@ public class LoanService {
                 .updatedAt(LocalDateTime.now())
                 .status(Loan.LoanStatus.ACTIVE)
                 .build();
+
 
         return loanRepository.save(loan);
     }

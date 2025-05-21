@@ -14,6 +14,7 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     boolean existsByCustomerAndStatusIn(Customer customer, List<ApplicationStatus> statusList);
 
+
     List<Application> findByCustomer(Customer customer);
 
     List<Application> findByBranch_Id(UUID branchId);

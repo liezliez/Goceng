@@ -7,9 +7,9 @@ import id.co.bcaf.goceng.models.Loan;
 import id.co.bcaf.goceng.models.LoanLog;
 import id.co.bcaf.goceng.repositories.ApplicationRepository;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
+import id.co.bcaf.goceng.services.CustomerService;
 import id.co.bcaf.goceng.services.LoanApplicationService;
 import id.co.bcaf.goceng.services.LoanService;
-import id.co.bcaf.goceng.services.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +29,7 @@ public class LoanController {
     private final ApplicationRepository applicationRepository;
     private final CustomerRepository customerRepository;
     private final CustomerService customerService;
-    private final LoanApplicationService historyService;
+    private final LoanApplicationService loanApplicationService;
 
     // Create loan from an approved application
     @PostMapping("/create-from-application/{applicationId}")
@@ -44,11 +44,9 @@ public class LoanController {
 
         Loan loan = loanService.createLoanFromApprovedApplication(application, customer, interestRate, tenor);
 
-        // Fetch only the created loan directly instead of all history + filtering
         LoanResponse loanResponse = loanService.getLoanById(loan.getId());
         return ResponseEntity.ok(loanResponse);
     }
-
 
     // Partial update of loan
     @PatchMapping("/{loanId}")
@@ -67,10 +65,10 @@ public class LoanController {
         return ResponseEntity.ok(totalLoan);
     }
 
-    // Get loan history for customer
+    // Get loan application history for customer
     @GetMapping("/customer/{customerId}/history")
     public ResponseEntity<List<LoanApplicationDTO>> getLoanApplicationHistory(@PathVariable UUID customerId) {
-        List<LoanApplicationDTO> history = historyService.getLoanApplication(customerId);
+        List<LoanApplicationDTO> history = loanApplicationService.getLoanApplication(customerId);
         return ResponseEntity.ok(history);
     }
 

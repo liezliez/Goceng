@@ -21,8 +21,12 @@ public class Loan {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "id_customer", nullable = false) // changed from customer_id
     private Customer customer;
+
+    @ManyToOne
+    @JoinColumn(name = "id_application", nullable = false) // changed from application_id
+    private Application application;
 
     @Column(name = "loan_amount", nullable = false)
     private BigDecimal loanAmount;
@@ -33,10 +37,9 @@ public class Loan {
     @Column(nullable = false)
     private BigDecimal installment;
 
-    // Add setter for interestRate
     @Setter
     @Column(nullable = false)
-    private BigDecimal interestRate; // Changed to BigDecimal
+    private BigDecimal interestRate;
 
     @Column(name = "remaining_tenor", nullable = false)
     private Integer remainingTenor;
@@ -53,7 +56,6 @@ public class Loan {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // Add setter for updatedAt
     @Setter
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
@@ -76,6 +78,4 @@ public class Loan {
     public void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-
 }
