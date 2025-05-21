@@ -3,14 +3,13 @@ package id.co.bcaf.goceng.services;
 import id.co.bcaf.goceng.dto.CustomerResponse;
 import id.co.bcaf.goceng.exceptions.ResourceNotFoundException;
 import id.co.bcaf.goceng.models.Application;
-import id.co.bcaf.goceng.models.Loan;
 import id.co.bcaf.goceng.models.Customer;
+import id.co.bcaf.goceng.models.Loan;
 import id.co.bcaf.goceng.models.LoanLog;
 import id.co.bcaf.goceng.repositories.LoanLogRepository;
 import id.co.bcaf.goceng.repositories.LoanRepository;
 import id.co.bcaf.goceng.dto.LoanResponse;
 import id.co.bcaf.goceng.dto.LoanUpdateRequest;
-
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -49,8 +48,8 @@ public class LoanService {
         return loanRepository.save(loan);
     }
 
-
     private BigDecimal calculateInstallment(BigDecimal principal, BigDecimal annualInterestRate, int tenorMonths) {
+        // Calculate monthly interest rate as decimal
         BigDecimal monthlyInterest = annualInterestRate.divide(BigDecimal.valueOf(12), 10, BigDecimal.ROUND_HALF_UP)
                 .divide(BigDecimal.valueOf(100), 10, BigDecimal.ROUND_HALF_UP);
 
@@ -59,6 +58,7 @@ public class LoanService {
         }
 
         BigDecimal onePlusR = BigDecimal.ONE.add(monthlyInterest);
+        // Use pow with positive exponent, calculate denominator as 1 - (1+r)^-tenor
         BigDecimal denominator = BigDecimal.ONE.subtract(onePlusR.pow(-tenorMonths, java.math.MathContext.DECIMAL128));
         BigDecimal numerator = principal.multiply(monthlyInterest);
 
@@ -69,7 +69,7 @@ public class LoanService {
         BigDecimal monthlyInstallment = calculateInstallment(loanAmount, interestRate, tenor);
 
         return LoanResponse.builder()
-                .id(null) // No ID since it's not persisted
+                .id(null) // Not persisted yet
                 .customerId(customer.getIdCustomer())
                 .customerName(customer.getName())
                 .loanAmount(loanAmount)
@@ -79,14 +79,12 @@ public class LoanService {
                 .remainingTenor(tenor)
                 .remainingPrincipal(loanAmount)
                 .totalPaid(BigDecimal.ZERO)
-                .plafonType("Standard") // or dynamic if applicable
-                .plafonLimit(BigDecimal.valueOf(1000000))
+                .plafonType("Standard") // Example value
+                .plafonLimit(BigDecimal.valueOf(1_000_000)) // Example plafon limit
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
     }
-
-
 
     @Transactional
     public LoanResponse updateLoanPartially(UUID loanId, LoanUpdateRequest request) {
@@ -103,12 +101,11 @@ public class LoanService {
         return convertToResponse(loanRepository.save(loan));
     }
 
-    // Helper method to convert Loan to LoanResponse
     private LoanResponse convertToResponse(Loan loan) {
         return LoanResponse.builder()
                 .id(loan.getId())
                 .customerId(loan.getCustomer().getId())
-                .customerName(loan.getCustomer().getName()) // Access the name from Customer
+                .customerName(loan.getCustomer().getName())
                 .loanAmount(loan.getLoanAmount())
                 .tenor(loan.getTenor())
                 .installment(loan.getInstallment())
@@ -116,8 +113,8 @@ public class LoanService {
                 .remainingTenor(loan.getRemainingTenor())
                 .remainingPrincipal(loan.getRemainingPrincipal())
                 .totalPaid(loan.getTotalPaid())
-                .plafonType("Standard") // You can update this as needed
-                .plafonLimit(BigDecimal.valueOf(1000000)) // Replace with actual plafon limit
+                .plafonType("Standard") // You may want to add dynamic logic here
+                .plafonLimit(BigDecimal.valueOf(1_000_000)) // Example limit, can be dynamic
                 .createdAt(loan.getCreatedAt())
                 .updatedAt(loan.getUpdatedAt())
                 .build();
@@ -127,16 +124,26 @@ public class LoanService {
         return loanRepository.sumTotalLoanAmountByCustomer(customerId).orElse(BigDecimal.ZERO);
     }
 
-    public List<LoanResponse> getLoanHistoryForCustomer(UUID customerId) {
-        return loanRepository.findByCustomerId(customerId).stream()
-                .map(this::convertToResponse)
-                .toList();
+//    public List<LoanResponse> getLoanHistoryForCustomer(UUID customerId) {
+//        return loanRepository.findByCustomerId(customerId).stream()
+//                .map(this::convertToResponse)
+//                .toList();
+//    }
+
+
+
+    public LoanResponse getLoanById(UUID loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+        return convertToResponse(loan);
     }
+
 
     public List<LoanLog> getLoanLogs(UUID loanId) {
         return loanLogRepository.findByLoan_IdOrderByTimestampDesc(loanId);
     }
 
+    // Optional: Use this to track field changes if you want
     private void logChange(Loan loan, String field, String oldVal, String newVal, String username) {
         LoanLog log = LoanLog.builder()
                 .loan(loan)
@@ -153,10 +160,8 @@ public class LoanService {
 
     public List<LoanResponse> searchLoans(UUID customerId, Loan.LoanStatus status, LocalDateTime fromDate, LocalDateTime toDate) {
         List<Loan> loans = loanRepository.searchLoansWithFilters(customerId, status, fromDate, toDate);
-        return loans.stream().map(this::convertToResponse).toList();
+        return loans.stream()
+                .map(this::convertToResponse)
+                .toList();
     }
-
-
-
-
 }

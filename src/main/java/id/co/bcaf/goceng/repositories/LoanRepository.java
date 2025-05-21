@@ -15,7 +15,7 @@ import java.util.UUID;
 
 public interface LoanRepository extends JpaRepository<Loan, UUID> {
 
-    List<Loan> findByCustomerId(UUID customerId);
+    List<Loan> findByCustomer_Id(UUID customerId);
 
     @Query("SELECT SUM(l.loanAmount) FROM Loan l WHERE l.customer.id = :customerId")
     Optional<BigDecimal> sumLoanByCustomer(@Param("customerId") UUID customerId);

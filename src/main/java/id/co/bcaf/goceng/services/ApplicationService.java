@@ -170,6 +170,17 @@ public class ApplicationService {
         return List.of();
     }
 
+    // Get applications by current user's customer ID
+    public List<Application> getApplicationsByCustomer(UUID id) {
+        return Stream.of(
+                        applicationRepo.findByCustomer_Id(id)
+                ).flatMap(List::stream)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+
+
     // Get applications by current user's customer ID (if ROLE_CUSTOMER) or user ID
     public List<Application> getApplicationsByCustomerOrUserId(UUID id) {
         return Stream.of(

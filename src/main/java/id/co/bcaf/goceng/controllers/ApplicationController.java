@@ -72,6 +72,15 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.getApplicationById(id));
     }
 
+    @GetMapping("/by-customer/{id}")
+    public ResponseEntity<List<ApplicationResponse>> getApplicationsByCustomer(@PathVariable UUID id) {
+        List<Application> applications = applicationService.getApplicationsByCustomer(id);
+        List<ApplicationResponse> responseList = applications.stream()
+                .map(ApplicationResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseList);
+    }
+
     @GetMapping("/by-customer-or-user/{id}")
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByCustomerOrUserId(@PathVariable UUID id) {
         List<Application> applications = applicationService.getApplicationsByCustomerOrUserId(id);
