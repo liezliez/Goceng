@@ -78,15 +78,6 @@ public class Application {
     @Column(name = "back_office_note", columnDefinition = "TEXT")
     private String backOfficeNote;
 
-    @Column(name = "marketing_nip")
-    private String marketingNip;
-
-    @Column(name = "branch_manager_nip")
-    private String branchManagerNip;
-
-    @Column(name = "back_office_nip")
-    private String backOfficeNip;
-
     @Column(nullable = false)
     private Integer tenor;
 
