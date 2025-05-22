@@ -219,7 +219,7 @@ public class ApplicationService {
             String notificationTitle = "Application Approved";
             String notificationMessage = "Your loan application has been approved.";
 
-            notificationService.sendNotification(getCurrentUser().getFcmToken(), notificationTitle, notificationMessage);
+            notificationService.sendNotification(customerUser.getFcmToken(), notificationTitle, notificationMessage);
 
             String emailSubject = "Loan Application Approved";
             String emailBody = "Dear " + customerUser.getName() + ",\n\n" +
