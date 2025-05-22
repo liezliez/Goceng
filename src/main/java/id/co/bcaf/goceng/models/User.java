@@ -54,9 +54,12 @@ public class User implements UserDetails {
     private Employee employee;
 
     // Explicit getter/setter for fcmToken (optional but can help IDEs)
-    @Setter
-    @Getter
+    @Column(name = "fcmtoken")
     private String fcmToken;
+
+    public String getFcmToken() { return fcmToken; }
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+
 
     // UserDetails implementation
     @Override

@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 /src/main/resources/application.properties
+
+# Ignore Firebase service account key JSON to avoid committing secrets
+src/main/resources/goceng-app-6e913-firebase-adminsdk-fbsvc-dd705f02ac.json

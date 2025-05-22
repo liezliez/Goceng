@@ -56,6 +56,8 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
+
+
     public RegisterResponse registerUser(UserRequest request) {
         Role defaultRole = getRoleById(2); // Default Role Customer
 
@@ -227,6 +229,17 @@ public class UserService {
         }
 
         return response;
+    }
+
+    public boolean updateFcmToken(UUID userId, String fcmToken) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setFcmToken(fcmToken);  // <-- make sure your User entity has this field
+            userRepository.save(user);
+            return true;
+        }
+        return false;
     }
 
 

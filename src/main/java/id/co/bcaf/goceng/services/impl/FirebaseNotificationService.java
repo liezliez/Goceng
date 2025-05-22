@@ -3,36 +3,31 @@ package id.co.bcaf.goceng.services.impl;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
-import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.services.NotificationService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-@Service
+@Service  // Make sure to add this so Spring registers the bean
+@Slf4j
 public class FirebaseNotificationService implements NotificationService {
 
     @Override
-    public void sendAppNotification(User user, String title, String message) {
-        String fcmToken = user.getFcmToken();
-
-        if (fcmToken == null || fcmToken.isEmpty()) {
-            return; // no token to send
-        }
-
-        Notification notification = Notification.builder()
-                .setTitle(title)
-                .setBody(message)
-                .build();
-
-        Message msg = Message.builder()
-                .setToken(fcmToken)
-                .setNotification(notification)
-                .build();
-
+    public boolean sendNotification(String fcmToken, String title, String body) {
         try {
-            String response = FirebaseMessaging.getInstance().send(msg);
-            System.out.println("Notification sent: " + response);
+            Message message = Message.builder()
+                    .setToken(fcmToken)
+                    .setNotification(Notification.builder()
+                            .setTitle(title)
+                            .setBody(body)
+                            .build())
+                    .build();
+
+            String response = FirebaseMessaging.getInstance().send(message);
+            log.info("Sent message: " + response);
+            return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to send Firebase notification", e);
+            return false;
         }
     }
 }

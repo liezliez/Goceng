@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +26,11 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getUserByPrincipal(Principal principal) {
@@ -193,8 +200,32 @@ public class UserController {
 
         return dto;
     }
+    @PutMapping("/fcm-token")
+    public ResponseEntity<?> updateFcmToken(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody FcmTokenRequest request) {
 
+        if (userDetails == null) {
+            System.out.println("updateFcmToken: userDetails is null - unauthorized");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
+        System.out.println("updateFcmToken: user = " + userDetails.getUsername() + ", token = " + request.getFcmToken());
 
+        Optional<User> userOpt = userService.getUserByEmail(userDetails.getUsername());
+        if (userOpt.isEmpty()) {
+            System.out.println("updateFcmToken: user not found by email");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        boolean updated = userService.updateFcmToken(userOpt.get().getIdUser(), request.getFcmToken());
+        if (updated) {
+            System.out.println("updateFcmToken: FCM token updated successfully");
+            return ResponseEntity.ok().build();
+        } else {
+            System.out.println("updateFcmToken: failed to update FCM token");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
 }
