@@ -53,8 +53,12 @@ public class User implements UserDetails {
     @JsonManagedReference("user-employee")
     private Employee employee;
 
-    // UserDetails implementation
+    // Explicit getter/setter for fcmToken (optional but can help IDEs)
+    @Setter
+    @Getter
+    private String fcmToken;
 
+    // UserDetails implementation
     @Override
     @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -91,13 +95,11 @@ public class User implements UserDetails {
         return accountStatus == AccountStatus.ACTIVE;
     }
 
-    // Convenience method for checking deletion status
     @JsonIgnore
     public boolean isDeleted() {
         return accountStatus == AccountStatus.DELETED;
     }
 
-    // Optional getter for generic account status access
     public AccountStatus getStatus() {
         return accountStatus;
     }

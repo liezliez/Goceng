@@ -12,12 +12,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,6 +36,10 @@ public class ApplicationService {
     private final ApplicationLogRepository applicationLogRepo;
     private final LoanService loanService;
     private final PlafonRepository plafonRepo;
+
+    // Notification
+    private final NotificationService notificationService;
+    private final EmailService emailService;
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -212,11 +213,26 @@ public class ApplicationService {
 
         if (isApproved && newStatus == ApplicationStatus.APPROVED) {
             processLoanCreation(app);
+
+            // *** Send notifications here ***
+            User customerUser = app.getCustomer().getUser();
+            String notificationTitle = "Application Approved";
+            String notificationMessage = "Your loan application has been approved.";
+
+            notificationService.sendAppNotification(customerUser, notificationTitle, notificationMessage);
+
+            String emailSubject = "Loan Application Approved";
+            String emailBody = "Dear " + customerUser.getName() + ",\n\n" +
+                    "Congratulations! Your loan application with ID " + app.getId() + " has been approved.\n\n" +
+                    "Thank you for choosing us.\n\nBest regards,\n Goceng App";
+
+            emailService.sendEmail(customerUser.getEmail(), emailSubject, emailBody);
         }
 
         logApplicationChange(app, approver, isApproved ? "APPROVE" : "REJECT", isApproved, beforeStatus, newStatus);
         return convertToResponse(applicationRepo.save(app));
     }
+
 
     @Transactional
     public ApplicationResponse rejectApplication(UUID id, ApprovalRole role, String note) {
