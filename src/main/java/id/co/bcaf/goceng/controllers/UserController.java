@@ -141,6 +141,37 @@ public class UserController {
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid ChangePasswordRequest request) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            boolean result = userService.changePassword(
+                    userDetails.getUsername(),
+                    request.getOldPassword(),
+                    request.getNewPassword()
+            );
+
+            if (result) {
+                return ResponseEntity.ok(new ApiResponse<>(true, "Password changed successfully", null));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new ApiResponse<>(false, "Old password is incorrect or user not found", null));
+            }
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+
+
     @PutMapping("/id/{id}/delete")
 //    @PreAuthorize("hasAuthority('DELETE_USER')")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {

@@ -190,16 +190,24 @@ public class UserService {
         });
     }
 
-    public boolean changePassword(UUID userId, String oldPassword, String newPassword) {
-        return userRepository.findById(userId).map(user -> {
-            if (passwordEncoder.matches(oldPassword, user.getPassword())) {
-                user.setPassword(passwordEncoder.encode(newPassword));
-                userRepository.save(user);
-                return true;
+    public boolean changePassword(String email, String oldPassword, String newPassword) {
+        return userRepository.findByEmail(email).map(user -> {
+            if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+                return false; // old password does not match
             }
-            return false;
+
+            if (passwordEncoder.matches(newPassword, user.getPassword())) {
+                // new password is same as current
+                throw new IllegalArgumentException("New password must be different from the current password");
+            }
+
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+            return true;
         }).orElse(false);
     }
+
+
 
     private UserResponse mapToUserResponse(User user) {
         UserResponse response = new UserResponse();
