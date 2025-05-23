@@ -49,12 +49,7 @@ public class ApplicationService {
         }
 
         Object principal = auth.getPrincipal();
-        logger.info("Auth principal: {}", principal);
-
         String email = auth.getName();
-
-        logger.info("Authenticated user email: {}", email);
-
         return userRepo.findByEmail(email)
                 .orElseThrow(() -> {
                     logger.warn("No user found for email: {}", email);
@@ -73,7 +68,6 @@ public class ApplicationService {
 
             Branch branch = branchRepo.findById(req.getBranchId())
                     .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
-        logger.info("Found branch for application: {}", branch.getId());
 
             Plafon plafon = plafonRepo.findFirstByOrderByPlafonAmountAsc()
                     .orElseThrow(() -> new RuntimeException("No loan limit available"));

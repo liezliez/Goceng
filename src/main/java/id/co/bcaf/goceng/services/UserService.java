@@ -71,7 +71,6 @@ public class UserService {
             Branch branch = getBranchById(request.getId_branch());
             user.setBranch(branch);
         }
-
         User savedUser = userRepository.save(user);
         CustomerResponse customerResponse = customerService.createCustomerFromUser(savedUser, request.getName(), request.getNik());
         UserResponse userResponse = mapToUserResponse(savedUser);
@@ -79,12 +78,10 @@ public class UserService {
     }
 
 
-
-
     @Transactional
     public User createUserFromRequest(CreateUserRequest request) {
         User user = new User();
-        user.setName(request.getName());   // <---- set name here
+        user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setAccountStatus(AccountStatus.ACTIVE);
@@ -102,8 +99,6 @@ public class UserService {
 
         return user;
     }
-
-
 
     private User saveUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -207,11 +202,9 @@ public class UserService {
         }).orElse(false);
     }
 
-
-
     private UserResponse mapToUserResponse(User user) {
         UserResponse response = new UserResponse();
-        response.setId(user.getIdUser());                // UUID id
+        response.setId(user.getIdUser());
         response.setName(user.getName());
         response.setEmail(user.getEmail());
         response.setAccount_status(user.getAccountStatus());
@@ -247,7 +240,7 @@ public class UserService {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            user.setFcmToken(fcmToken);  // <-- make sure your User entity has this field
+            user.setFcmToken(fcmToken);
             userRepository.save(user);
             return true;
         }

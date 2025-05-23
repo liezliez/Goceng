@@ -56,7 +56,7 @@ public class CustomerService {
 
         Customer customer = new Customer();
         customer.setUser(user);
-        customer.setName(request.getName());  // Added name field
+        customer.setName(request.getName());
         customer.setNik(request.getNik());
         customer.setDateOfBirth(request.getDateOfBirth());
         customer.setPlaceOfBirth(request.getPlaceOfBirth());
