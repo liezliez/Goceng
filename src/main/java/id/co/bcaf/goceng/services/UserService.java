@@ -67,14 +67,42 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setRole(defaultRole);
+
+        Branch branch = null;
+
         if (request.getId_branch() != null) {
-            Branch branch = getBranchById(request.getId_branch());
+            branch = getBranchById(request.getId_branch());
+        } else if (request.getLatitude() != null && request.getLongitude() != null) {
+            branch = findNearestBranch(request.getLatitude(), request.getLongitude());
+        }
+
+        if (branch != null) {
             user.setBranch(branch);
         }
+
         User savedUser = userRepository.save(user);
         CustomerResponse customerResponse = customerService.createCustomerFromUser(savedUser, request.getName(), request.getNik());
         UserResponse userResponse = mapToUserResponse(savedUser);
         return new RegisterResponse(userResponse, customerResponse);
+    }
+
+    private Branch findNearestBranch(double userLat, double userLng) {
+        List<Branch> branches = branchRepository.findAll();
+
+        return branches.stream()
+                .min(Comparator.comparingDouble(branch -> haversine(userLat, userLng, branch.getLatitude(), branch.getLongitude())))
+                .orElseThrow(() -> new RuntimeException("No branches available"));
+    }
+
+    private double haversine(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Earth radius in km
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 
 
