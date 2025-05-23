@@ -380,4 +380,57 @@ public class ApplicationService {
                 ApprovalRole.BACK_OFFICE,
                 note);
     }
+
+    // Testing purpose
+
+    @Transactional
+    public ApplicationResponse autoApproveApplication(UUID applicationId, String note) {
+        Application app = applicationRepo.findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException("Application not found"));
+
+        if (app.getStatus() != ApplicationStatus.PENDING_MARKETING) {
+            throw new InvalidApplicationStatusException("Application must start at PENDING_MARKETING");
+        }
+
+        // Fake current user as system/test admin for audit logs
+        User systemUser = getCurrentUser();
+
+        // Marketing approval
+        setApprovalFields(app, systemUser, ApprovalRole.MARKETING, note);
+        app.setStatus(ApplicationStatus.PENDING_BRANCH_MANAGER);
+
+        // Branch manager approval
+        setApprovalFields(app, systemUser, ApprovalRole.BRANCH_MANAGER, note);
+        app.setStatus(ApplicationStatus.PENDING_BACK_OFFICE);
+
+        // Back office approval and final approval
+        setApprovalFields(app, systemUser, ApprovalRole.BACK_OFFICE, note);
+        app.setStatus(ApplicationStatus.APPROVED);
+        app.setUpdatedAt(LocalDateTime.now());
+
+        // Create loan and send notifications
+        processLoanCreation(app);
+        sendApprovalNotification(app);
+
+        logApplicationChange(app, systemUser, "AUTO_APPROVE", true,
+                ApplicationStatus.PENDING_MARKETING, ApplicationStatus.APPROVED);
+
+        return convertToResponse(applicationRepo.save(app));
+    }
+
+    private void sendApprovalNotification(Application app) {
+        User customerUser = app.getCustomer().getUser();
+        String notificationTitle = "Application Approved (Auto)";
+        String notificationMessage = "Your loan application has been approved automatically for testing.";
+
+        notificationService.sendNotification(customerUser.getFcmToken(), notificationTitle, notificationMessage);
+
+        String emailSubject = "Loan Application Approved (Test)";
+        String emailBody = "Dear " + customerUser.getName() + ",\n\n" +
+                "Your loan application with ID " + app.getId() + " has been approved automatically for testing purposes.\n\n" +
+                "Thank you.\n\nBest regards,\n Goceng App (Test System)";
+
+        emailService.sendEmail(customerUser.getEmail(), emailSubject, emailBody);
+    }
+
 }

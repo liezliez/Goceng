@@ -99,4 +99,10 @@ public class ApplicationController {
     ) {
         return ResponseEntity.ok(applicationService.rejectApplication(id, role, note));
     }
+
+    @PutMapping("/{id}/auto-approve")
+    public ResponseEntity<ApplicationResponse> autoApproveApplication(@PathVariable UUID id, String note) {
+        return ResponseEntity.ok(applicationService.autoApproveApplication(id,note));
+    }
+
 }
