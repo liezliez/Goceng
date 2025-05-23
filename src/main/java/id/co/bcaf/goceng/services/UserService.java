@@ -58,7 +58,7 @@ public class UserService {
 
 
 
-    public RegisterResponse registerUser(UserRequest request) {
+    public RegisterResponse registerUser(RegisterRequest request) {
         Role defaultRole = getRoleById(2); // Default Role Customer
 
         User user = new User();
@@ -67,6 +67,11 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setRole(defaultRole);
+        if (request.getId_branch() != null) {
+            Branch branch = getBranchById(request.getId_branch());
+            user.setBranch(branch);
+        }
+
         User savedUser = userRepository.save(user);
         CustomerResponse customerResponse = customerService.createCustomerFromUser(savedUser, request.getName(), request.getNik());
         UserResponse userResponse = mapToUserResponse(savedUser);
@@ -104,7 +109,6 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
-
     public Optional<User> updateUser(UUID id, User userDetails) {
         return userRepository.findById(id).map(user -> {
             if (userDetails.getRole() != null) {
@@ -173,8 +177,8 @@ public class UserService {
                 user.setRole(role);
             }
 
-            if (request.getIdBranch() != null) {
-                Branch branch = getBranchById(request.getIdBranch());
+            if (request.getId_branch() != null) {
+                Branch branch = getBranchById(request.getId_branch());
                 user.setBranch(branch);
             }
 

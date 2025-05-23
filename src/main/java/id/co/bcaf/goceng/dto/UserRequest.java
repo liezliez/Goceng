@@ -26,7 +26,6 @@ public class UserRequest {
 
     private Integer idRole;
 
-    private UUID idBranch;
-
+    private UUID id_branch;
 
 }

@@ -54,8 +54,9 @@ public class UserController {
             userRequest.setEmail(request.getEmail());
             userRequest.setPassword(request.getPassword());
             userRequest.setNik(request.getNik());
+            userRequest.setId_branch(request.getId_branch());
 
-            RegisterResponse registerResponse = userService.registerUser(userRequest);
+            RegisterResponse registerResponse = userService.registerUser(request);
 
             return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", registerResponse));
         } catch (DataIntegrityViolationException ex) {
