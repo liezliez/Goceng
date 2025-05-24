@@ -46,10 +46,12 @@ public class CustomerService {
         customer.setName(name);
         customer.setNik(nik);
         customer.setPlafon(lowestPlafon);
+        customer.setCreditLimit(lowestPlafon.getPlafonAmount());
 
         Customer savedCustomer = customerRepository.save(customer);
         return mapToResponse(savedCustomer);
     }
+
 
     public CustomerResponse createCustomer(CustomerRequest request) {
         User user = userRepository.findById(UUID.fromString(request.getUserId()))
@@ -75,16 +77,15 @@ public class CustomerService {
         customer.setSalary(request.getSalary());
         customer.setHomeOwnershipStatus(request.getHomeOwnershipStatus());
         customer.setEmergencyCall(request.getEmergencyCall());
-        customer.setCreditLimit(request.getCreditLimit());
         customer.setAccountNo(request.getAccountNo());
         customer.setUrlKtp(request.getUrlKtp());
         customer.setUrlSelfie(request.getUrlSelfie());
-        customer.setPlafon(lowestPlafon); // <- Assign plafon
+        customer.setPlafon(lowestPlafon);
+        customer.setCreditLimit(lowestPlafon.getPlafonAmount());
 
         Customer saved = customerRepository.save(customer);
         return mapToResponse(saved);
     }
-
 
     public List<CustomerResponse> getAllCustomers() {
         return customerRepository.findAll()
