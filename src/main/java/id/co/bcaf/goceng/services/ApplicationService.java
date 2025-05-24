@@ -37,7 +37,6 @@ public class ApplicationService {
     private final LoanService loanService;
     private final PlafonRepository plafonRepo;
 
-    // Notification
     private final NotificationService notificationService;
     private final EmailService emailService;
 
@@ -47,8 +46,6 @@ public class ApplicationService {
             logger.warn("Authentication is null or not authenticated");
             throw new UserNotAuthenticatedException("User is not authenticated");
         }
-
-        Object principal = auth.getPrincipal();
         String email = auth.getName();
         return userRepo.findByEmail(email)
                 .orElseThrow(() -> {
@@ -57,58 +54,64 @@ public class ApplicationService {
                 });
     }
 
+    @Transactional
+    public ApplicationResponse create(ApplicationRequest req) {
+        Customer customer = customerRepo.findById(req.getCustomerId())
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
 
+        if (customer.getCreditLimit() == null) {
+            throw new LoanAmountExceededException("Customer credit limit is not set.");
+        }
 
-        @Transactional
-        public ApplicationResponse create(ApplicationRequest req) {
-            Customer customer = customerRepo.findById(req.getCustomerId())
-                    .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
-            checkForPendingApplications(customer);
-            validateCustomerDataCompleted(customer);
+        // Use customer's credit limit as maximum allowed amount
+        if (req.getAmount().compareTo(customer.getCreditLimit()) > 0) {
+            throw new LoanAmountExceededException("Requested loan amount exceeds customer's credit limit.");
+        }
 
-            Branch branch = branchRepo.findById(req.getBranchId())
-                    .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
+        checkForPendingApplications(customer);
+        validateCustomerDataCompleted(customer);
 
-            Plafon plafon = plafonRepo.findFirstByOrderByPlafonAmountAsc()
-                    .orElseThrow(() -> new RuntimeException("No loan limit available"));
+        Branch branch = branchRepo.findById(req.getBranchId())
+                .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
 
-            validateLoanAmount(req.getAmount(), plafon.getPlafonAmount());
+        Plafon plafon = plafonRepo.findFirstByOrderByPlafonAmountAsc()
+                .orElseThrow(() -> new RuntimeException("No loan limit available"));
+
+        // Removed old validateLoanAmount call here
 
         logger.info("Creating application with branchId: {}", req.getBranchId());
 
+        Application app = Application.builder()
+                .customer(customer)
+                .amount(req.getAmount())
+                .purpose(req.getPurpose())
+                .tenor(req.getTenor())
+                .branch(branch)
+                .status(ApplicationStatus.PENDING_MARKETING)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .plafon(plafon)
+                .interestRate(plafon.getInterestRate())
+                .plafonType(plafon.getPlafonType())
+                .plafonLimit(plafon.getPlafonAmount())
+                .build();
 
+        return convertToResponse(applicationRepo.save(app));
+    }
 
-            Application app = Application.builder()
-                    .customer(customer)
-                    .amount(req.getAmount())
-                    .purpose(req.getPurpose())
-                    .tenor(req.getTenor())
-                    .branch(branch)
-                    .status(ApplicationStatus.PENDING_MARKETING)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .plafon(plafon)
-                    .interestRate(plafon.getInterestRate())
-                    .plafonType(plafon.getPlafonType())
-                    .plafonLimit(plafon.getPlafonAmount())
-                    .build();
+    private void validateCustomerDataCompleted(Customer customer) {
+        boolean incomplete = Stream.of(
+                customer.getName(), customer.getNik(), customer.getPlaceOfBirth(),
+                customer.getTelpNo(), customer.getAddress(), customer.getMotherMaidenName(),
+                customer.getOccupation(), customer.getHomeOwnershipStatus(),
+                customer.getEmergencyCall(), customer.getAccountNo(),
+                customer.getUrlKtp(), customer.getUrlSelfie()
+        ).anyMatch(this::isEmpty) || customer.getDateOfBirth() == null || customer.getSalary() == null || customer.getCreditLimit() == null;
 
-            return convertToResponse(applicationRepo.save(app));
+        if (incomplete) {
+            throw new IncompleteCustomerDataException("Customer data is incomplete. Please complete all required fields before applying.");
         }
-
-        private void validateCustomerDataCompleted(Customer customer) {
-            boolean incomplete = Stream.of(
-                    customer.getName(), customer.getNik(), customer.getPlaceOfBirth(),
-                    customer.getTelpNo(), customer.getAddress(), customer.getMotherMaidenName(),
-                    customer.getOccupation(), customer.getHomeOwnershipStatus(),
-                    customer.getEmergencyCall(), customer.getAccountNo(),
-                    customer.getUrlKtp(), customer.getUrlSelfie()
-            ).anyMatch(this::isEmpty) || customer.getDateOfBirth() == null || customer.getSalary() == null || customer.getCreditLimit() == null;
-
-            if (incomplete) {
-                throw new IncompleteCustomerDataException("Customer data is incomplete. Please complete all required fields before applying.");
-            }
-        }
+    }
 
     private boolean isEmpty(String str) {
         return str == null || str.trim().isEmpty();
@@ -125,12 +128,7 @@ public class ApplicationService {
         }
     }
 
-    private void validateLoanAmount(BigDecimal requestedAmount, BigDecimal plafonAmount) {
-        if (requestedAmount.compareTo(plafonAmount) > 0) {
-            throw new LoanAmountExceededException("Requested loan amount exceeds the plafon limit.");
-        }
-    }
-
+    // Removed old validateLoanAmount method entirely
 
     public List<ApplicationResponse> getAllApplications() {
         return applicationRepo.findAll().stream()
@@ -165,7 +163,6 @@ public class ApplicationService {
         return List.of();
     }
 
-    // Get applications by current user's customer ID
     public List<Application> getApplicationsByCustomer(UUID id) {
         return Stream.of(
                         applicationRepo.findByCustomer_Id(id)
@@ -174,9 +171,6 @@ public class ApplicationService {
                 .collect(Collectors.toList());
     }
 
-
-
-    // Get applications by current user's customer ID (if ROLE_CUSTOMER) or user ID
     public List<Application> getApplicationsByCustomerOrUserId(UUID id) {
         return Stream.of(
                         applicationRepo.findByCustomer_Id(id),
@@ -185,8 +179,6 @@ public class ApplicationService {
                 .distinct()
                 .collect(Collectors.toList());
     }
-
-
 
     @Transactional
     public ApplicationResponse approveApplication(UUID id, boolean isApproved, ApplicationStatus currentStatus,
@@ -205,28 +197,30 @@ public class ApplicationService {
         app.setStatus(newStatus);
         app.setUpdatedAt(LocalDateTime.now());
 
+        // Subtract customer's credit limit if application is finally approved
         if (isApproved && newStatus == ApplicationStatus.APPROVED) {
             processLoanCreation(app);
+            subtractCustomerCreditLimit(app.getCustomer(), app.getAmount());
 
-            // *** Send notifications here ***
-            User customerUser = app.getCustomer().getUser();
-            String notificationTitle = "Application Approved";
-            String notificationMessage = "Your loan application has been approved.";
-
-            notificationService.sendNotification(customerUser.getFcmToken(), notificationTitle, notificationMessage);
-
-            String emailSubject = "Loan Application Approved";
-            String emailBody = "Dear " + customerUser.getName() + ",\n\n" +
-                    "Congratulations! Your loan application with ID " + app.getId() + " has been approved.\n\n" +
-                    "Thank you for choosing us.\n\nBest regards,\n Goceng App";
-
-            emailService.sendEmail(customerUser.getEmail(), emailSubject, emailBody);
+            // Notifications
+            sendApprovalNotification(app);
         }
 
         logApplicationChange(app, approver, isApproved ? "APPROVE" : "REJECT", isApproved, beforeStatus, newStatus);
         return convertToResponse(applicationRepo.save(app));
     }
 
+    private void subtractCustomerCreditLimit(Customer customer, BigDecimal amount) {
+        BigDecimal currentLimit = Optional.ofNullable(customer.getCreditLimit()).orElse(BigDecimal.ZERO);
+        BigDecimal newLimit = currentLimit.subtract(amount);
+        if (newLimit.compareTo(BigDecimal.ZERO) < 0) {
+            logger.warn("Customer credit limit would become negative for customerId={}", customer.getId());
+            throw new LoanAmountExceededException("Customer credit limit cannot be negative.");
+        }
+        customer.setCreditLimit(newLimit);
+        customerRepo.save(customer);
+        logger.info("Subtracted {} from customer {} credit limit. New limit: {}", amount, customer.getId(), newLimit);
+    }
 
     @Transactional
     public ApplicationResponse rejectApplication(UUID id, ApprovalRole role, String note) {
@@ -345,10 +339,9 @@ public class ApplicationService {
     }
 
     private String getNipFromApprover(User approver) {
-        return Optional.ofNullable(approver.getEmployee())
-                .flatMap(emp -> employeeRepo.findById(emp.getId()))
-                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for user: " + approver.getUsername()))
-                .getNIP();
+        return employeeRepo.findByUser_IdUser(approver.getIdUser())
+                .map(Employee::getNIP)
+                .orElse("");
     }
 
     public ApplicationResponse marketingApprove(UUID id, boolean isApproved, String note) {
@@ -373,6 +366,26 @@ public class ApplicationService {
                 ApplicationStatus.APPROVED,
                 ApprovalRole.BACK_OFFICE,
                 note);
+    }
+
+    private void sendApprovalNotification(Application app) {
+        try {
+            User customerUser = app.getCustomer().getUser();
+
+            String notificationTitle = "Application Approved";
+            String notificationMessage = "Your loan application has been approved.";
+
+            notificationService.sendNotification(customerUser.getFcmToken(), notificationTitle, notificationMessage);
+
+            String emailSubject = "Loan Application Approved";
+            String emailBody = "Dear " + customerUser.getName() + ",\n\n" +
+                    "Congratulations! Your loan application with ID " + app.getId() + " has been approved.\n\n" +
+                    "Thank you for choosing us.\n\nBest regards,\nGoceng App";
+
+            emailService.sendEmail(customerUser.getEmail(), emailSubject, emailBody);
+        } catch (Exception e) {
+            logger.error("Failed to send approval notifications: {}", e.getMessage(), e);
+        }
     }
 
     // Testing purpose
@@ -410,21 +423,6 @@ public class ApplicationService {
                 ApplicationStatus.PENDING_MARKETING, ApplicationStatus.APPROVED);
 
         return convertToResponse(applicationRepo.save(app));
-    }
-
-    private void sendApprovalNotification(Application app) {
-        User customerUser = app.getCustomer().getUser();
-        String notificationTitle = "Application Approved (Auto)";
-        String notificationMessage = "Your loan application has been approved automatically for testing.";
-
-        notificationService.sendNotification(customerUser.getFcmToken(), notificationTitle, notificationMessage);
-
-        String emailSubject = "Loan Application Approved (Test)";
-        String emailBody = "Dear " + customerUser.getName() + ",\n\n" +
-                "Your loan application with ID " + app.getId() + " has been approved automatically for testing purposes.\n\n" +
-                "Thank you.\n\nBest regards,\n Goceng App (Test System)";
-
-        emailService.sendEmail(customerUser.getEmail(), emailSubject, emailBody);
     }
 
 }
