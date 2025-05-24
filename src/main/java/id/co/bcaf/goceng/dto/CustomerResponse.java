@@ -27,5 +27,10 @@ public class CustomerResponse {
     private String accountNo;
     private String urlKtp;
     private String urlSelfie;
+    private UUID plafonId;
+    private String plafonType;
+    private BigDecimal plafonAmount;
+    private BigDecimal interestRate;
+
 
 }

@@ -27,6 +27,10 @@ public class Customer {
     @JoinColumn(name = "id_user", nullable = false, unique = true)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_plafon", nullable = false)
+    private Plafon plafon;
+
     @Column(name = "credit_limit")
     private BigDecimal creditLimit;
 
@@ -68,6 +72,4 @@ public class Customer {
 
     @Column(name = "url_selfie")
     private String urlSelfie;
-
-
 }

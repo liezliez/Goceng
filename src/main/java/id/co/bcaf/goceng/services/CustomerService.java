@@ -4,9 +4,11 @@ import id.co.bcaf.goceng.dto.CustomerRequest;
 import id.co.bcaf.goceng.dto.CustomerResponse;
 import id.co.bcaf.goceng.exceptions.ResourceNotFoundException;
 import id.co.bcaf.goceng.models.Customer;
+import id.co.bcaf.goceng.models.Plafon;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
+import id.co.bcaf.goceng.repositories.PlafonRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import id.co.bcaf.goceng.utils.NullAwareBeanUtils;
 import jakarta.transaction.Transactional;
@@ -28,31 +30,37 @@ public class CustomerService {
     private EmployeeRepository employeeRepository;
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private PlafonRepository plafonRepository;
 
     public CustomerResponse createCustomerFromUser(User user, String name, String nik) {
         if (employeeRepository.existsByUser_IdUser(user.getIdUser())) {
             throw new IllegalStateException("User is already registered as an employee");
         }
+
+        Plafon lowestPlafon = plafonRepository.findLowestPlafon()
+                .orElseThrow(() -> new RuntimeException("No plafon found"));
+
         Customer customer = new Customer();
         customer.setUser(user);
         customer.setName(name);
         customer.setNik(nik);
+        customer.setPlafon(lowestPlafon);
 
         Customer savedCustomer = customerRepository.save(customer);
         return mapToResponse(savedCustomer);
     }
 
-
     public CustomerResponse createCustomer(CustomerRequest request) {
-
-
         User user = userRepository.findById(UUID.fromString(request.getUserId()))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (employeeRepository.existsByUser_IdUser(user.getIdUser())) {
             throw new IllegalStateException("User is already registered as an employee");
         }
+
+        Plafon lowestPlafon = plafonRepository.findLowestPlafon()
+                .orElseThrow(() -> new RuntimeException("No plafon found"));
 
         Customer customer = new Customer();
         customer.setUser(user);
@@ -71,11 +79,12 @@ public class CustomerService {
         customer.setAccountNo(request.getAccountNo());
         customer.setUrlKtp(request.getUrlKtp());
         customer.setUrlSelfie(request.getUrlSelfie());
-
+        customer.setPlafon(lowestPlafon); // <- Assign plafon
 
         Customer saved = customerRepository.save(customer);
         return mapToResponse(saved);
     }
+
 
     public List<CustomerResponse> getAllCustomers() {
         return customerRepository.findAll()
@@ -158,7 +167,12 @@ public class CustomerService {
         res.setName(customer.getName());
         res.setUrlKtp(customer.getUrlKtp());
         res.setUrlSelfie(customer.getUrlSelfie());
-
+        if (customer.getPlafon() != null) {
+            res.setPlafonId(customer.getPlafon().getId());
+            res.setPlafonType(customer.getPlafon().getPlafonType());
+            res.setPlafonAmount(customer.getPlafon().getPlafonAmount());
+            res.setInterestRate(customer.getPlafon().getInterestRate());
+        }
         return res;
     }
 
@@ -177,6 +191,5 @@ public class CustomerService {
         Customer saved = customerRepository.save(customer);
         return mapToResponse(saved);
     }
-
 
 }
