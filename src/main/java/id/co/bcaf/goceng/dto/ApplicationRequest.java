@@ -11,10 +11,11 @@ public class ApplicationRequest {
     private UUID customerId;
     private BigDecimal amount;
     private String purpose;
-    private UUID branchId;
     private Integer tenor;
 
-    private UUID loanLimitId;
     private String noteMarketing;
 
+//
+//    private UUID branchId;
+//    private UUID loanLimitId;
 }

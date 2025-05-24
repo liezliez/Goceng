@@ -104,5 +104,11 @@ public class GlobalExceptionHandler {
                 .body("File size exceeds maximum allowed limit!");
     }
 
+    @ExceptionHandler(LoanAmountExceededException.class)
+    public ResponseEntity<ApiResponse<String>> handleLoanAmountExceededException(LoanAmountExceededException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse<>(false, "Requested loan amount exceeds allowed limit: " + ex.getMessage(), null));
+    }
+
 
 }

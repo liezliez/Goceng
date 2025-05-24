@@ -54,6 +54,15 @@ public class ApplicationService {
                 });
     }
 
+    private UUID getCurrentUserBranchId() {
+        User user = getCurrentUser();
+        if (user.getBranch() == null) {
+            throw new RuntimeException("Current user branch is not assigned");
+        }
+        return user.getBranch().getId();
+    }
+
+
     @Transactional
     public ApplicationResponse create(ApplicationRequest req) {
         Customer customer = customerRepo.findById(req.getCustomerId())
@@ -71,15 +80,14 @@ public class ApplicationService {
         checkForPendingApplications(customer);
         validateCustomerDataCompleted(customer);
 
-        Branch branch = branchRepo.findById(req.getBranchId())
+        Branch branch = branchRepo.findById(getCurrentUserBranchId())
                 .orElseThrow(() -> new BranchNotFoundException("Branch not found"));
+
 
         Plafon plafon = plafonRepo.findFirstByOrderByPlafonAmountAsc()
                 .orElseThrow(() -> new RuntimeException("No loan limit available"));
 
-        // Removed old validateLoanAmount call here
-
-        logger.info("Creating application with branchId: {}", req.getBranchId());
+        logger.info("Creating application with branchId: {}", getCurrentUserBranchId());
 
         Application app = Application.builder()
                 .customer(customer)
@@ -417,6 +425,7 @@ public class ApplicationService {
 
         // Create loan and send notifications
         processLoanCreation(app);
+        subtractCustomerCreditLimit(app.getCustomer(), app.getAmount());
         sendApprovalNotification(app);
 
         logApplicationChange(app, systemUser, "AUTO_APPROVE", true,
