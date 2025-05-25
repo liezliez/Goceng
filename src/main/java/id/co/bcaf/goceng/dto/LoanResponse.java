@@ -11,6 +11,7 @@ import java.util.UUID;
 @Builder
 public class LoanResponse {
     private UUID id;
+
     private UUID customerId;
     private String customerName;
 
@@ -22,6 +23,8 @@ public class LoanResponse {
     private Integer remainingTenor;
     private BigDecimal remainingPrincipal;
     private BigDecimal totalPaid;
+
+    private LocalDateTime disbursedAt;
 
     private String plafonType;
     private BigDecimal plafonLimit;

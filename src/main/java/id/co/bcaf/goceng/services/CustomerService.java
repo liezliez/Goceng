@@ -10,9 +10,12 @@ import id.co.bcaf.goceng.repositories.CustomerRepository;
 import id.co.bcaf.goceng.repositories.EmployeeRepository;
 import id.co.bcaf.goceng.repositories.PlafonRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
+import id.co.bcaf.goceng.securities.CustomUserDetails;
 import id.co.bcaf.goceng.utils.NullAwareBeanUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -98,6 +101,23 @@ public class CustomerService {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
         return mapToResponse(customer);
+    }
+
+    public Optional<Customer> getCustomerFromCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+
+            if (principal instanceof CustomUserDetails) {
+                CustomUserDetails userDetails = (CustomUserDetails) principal;
+                UUID userId = userDetails.getUser().getIdUser();
+
+                return customerRepository.findByUser_IdUser(userId);
+            }
+        }
+
+        return Optional.empty();
     }
 
     public Customer updateCustomer(UUID id, CustomerRequest request) {

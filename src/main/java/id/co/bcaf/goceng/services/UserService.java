@@ -10,7 +10,6 @@ import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,19 +24,20 @@ public class UserService {
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmployeeService employeeService;
-
-    @Autowired
-    private CustomerService customerService;
+    private final CustomerService customerService;
 
     public UserService(UserRepository userRepository,
                        RoleRepository roleRepository,
                        BranchRepository branchRepository,
-                       PasswordEncoder passwordEncoder, EmployeeService employeeService) {
+                       PasswordEncoder passwordEncoder,
+                       EmployeeService employeeService,
+                       CustomerService customerService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
         this.employeeService = employeeService;
+        this.customerService = customerService;
     }
 
     public List<User> getAllUsers() {
@@ -56,8 +56,7 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-
-
+    @Transactional
     public RegisterResponse registerUser(RegisterRequest request) {
         Role defaultRole = getRoleById(2); // Default Role Customer
 
@@ -69,27 +68,25 @@ public class UserService {
         user.setRole(defaultRole);
 
         Branch branch = null;
-
         if (request.getId_branch() != null) {
             branch = getBranchById(request.getId_branch());
         } else if (request.getLatitude() != null && request.getLongitude() != null) {
             branch = findNearestBranch(request.getLatitude(), request.getLongitude());
         }
-
         if (branch != null) {
             user.setBranch(branch);
         }
 
         User savedUser = userRepository.save(user);
+
         CustomerResponse customerResponse = customerService.createCustomerFromUser(savedUser, request.getName(), request.getNik());
         UserResponse userResponse = mapToUserResponse(savedUser);
+
         return new RegisterResponse(userResponse, customerResponse);
     }
 
     private Branch findNearestBranch(double userLat, double userLng) {
-        List<Branch> branches = branchRepository.findAll();
-
-        return branches.stream()
+        return branchRepository.findAll().stream()
                 .min(Comparator.comparingDouble(branch -> haversine(userLat, userLng, branch.getLatitude(), branch.getLongitude())))
                 .orElseThrow(() -> new RuntimeException("No branches available"));
     }
@@ -105,7 +102,6 @@ public class UserService {
         return R * c;
     }
 
-
     @Transactional
     public User createUserFromRequest(CreateUserRequest request) {
         User user = new User();
@@ -117,21 +113,19 @@ public class UserService {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new EntityNotFoundException("Branch not found"));
         user.setBranch(branch);
+
         Role role = roleRepository.findByRoleName(request.getRole())
                 .orElseThrow(() -> new EntityNotFoundException("Role not found"));
         user.setRole(role);
-        user = userRepository.save(user);
 
-        // Create employee for user
-        employeeService.createEmployee(user.getIdUser(), role.getIdRole());
+        User savedUser = userRepository.save(user);
 
-        return user;
+        employeeService.createEmployee(savedUser.getIdUser(), role.getIdRole());
+
+        return savedUser;
     }
 
-    private User saveUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
-    }
+    @Transactional
     public Optional<User> updateUser(UUID id, User userDetails) {
         return userRepository.findById(id).map(user -> {
             if (userDetails.getRole() != null) {
@@ -155,6 +149,7 @@ public class UserService {
         });
     }
 
+    @Transactional
     public boolean deleteUser(UUID id) {
         return userRepository.findById(id).map(user -> {
             user.setAccountStatus(AccountStatus.DELETED);
@@ -163,6 +158,7 @@ public class UserService {
         }).orElse(false);
     }
 
+    @Transactional
     public boolean restoreUser(UUID id) {
         return userRepository.findById(id).map(user -> {
             if (user.getAccountStatus() == AccountStatus.DELETED) {
@@ -189,6 +185,7 @@ public class UserService {
                 .collect(Collectors.groupingBy(User::getAccountStatus, Collectors.counting()));
     }
 
+    @Transactional
     public Optional<User> updateUserFromRequest(UUID id, UserRequest request) {
         return userRepository.findById(id).map(user -> {
             if (request.getName() != null) user.setName(request.getName());
@@ -213,14 +210,14 @@ public class UserService {
         });
     }
 
+    @Transactional
     public boolean changePassword(String email, String oldPassword, String newPassword) {
         return userRepository.findByEmail(email).map(user -> {
             if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-                return false; // old password does not match
+                return false;
             }
 
             if (passwordEncoder.matches(newPassword, user.getPassword())) {
-                // new password is same as current
                 throw new IllegalArgumentException("New password must be different from the current password");
             }
 
@@ -237,26 +234,23 @@ public class UserService {
         response.setEmail(user.getEmail());
         response.setAccount_status(user.getAccountStatus());
 
-        // Map Role to RoleDto
         if (user.getRole() != null) {
             UserResponse.RoleDto roleDto = new UserResponse.RoleDto();
-            roleDto.setId(user.getRole().getIdRole());          // Integer id
+            roleDto.setId(user.getRole().getIdRole());
             roleDto.setRoleName(user.getRole().getRoleName());
             response.setRole(roleDto);
         }
 
-        // Map Branch to BranchDto
         if (user.getBranch() != null) {
             UserResponse.BranchDto branchDto = new UserResponse.BranchDto();
-            branchDto.setId(user.getBranch().getId());    // UUID id
+            branchDto.setId(user.getBranch().getId());
             branchDto.setName(user.getBranch().getName());
             response.setBranch(branchDto);
         }
 
-        // Map Employee to EmployeeDto if applicable
         if (user.getEmployee() != null) {
             UserResponse.EmployeeDto employeeDto = new UserResponse.EmployeeDto();
-            employeeDto.setId(user.getEmployee().getId()); // UUID id
+            employeeDto.setId(user.getEmployee().getId());
             employeeDto.setName(user.getEmployee().getName());
             response.setEmployee(employeeDto);
         }
@@ -264,16 +258,12 @@ public class UserService {
         return response;
     }
 
+    @Transactional
     public boolean updateFcmToken(UUID userId, String fcmToken) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
+        return userRepository.findById(userId).map(user -> {
             user.setFcmToken(fcmToken);
             userRepository.save(user);
             return true;
-        }
-        return false;
+        }).orElse(false);
     }
-
-
 }

@@ -12,12 +12,15 @@ import id.co.bcaf.goceng.services.LoanApplicationService;
 import id.co.bcaf.goceng.services.LoanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -64,6 +67,20 @@ public class LoanController {
         BigDecimal totalLoan = loanService.getTotalLoanForCustomer(customerId);
         return ResponseEntity.ok(totalLoan);
     }
+
+    @GetMapping("/current")
+    public ResponseEntity<List<LoanResponse>> getCurrentUserLoans() {
+        Optional<Customer> currentCustomerOpt = customerService.getCustomerFromCurrentUser();
+
+        if (currentCustomerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+        }
+
+        Customer currentCustomer = currentCustomerOpt.get();
+        List<LoanResponse> loans = loanService.getLoansByCustomerId(currentCustomer.getId());
+        return ResponseEntity.ok(loans);
+    }
+
 
     // Get loan application history for customer
     @GetMapping("/customer/{customerId}/history")
