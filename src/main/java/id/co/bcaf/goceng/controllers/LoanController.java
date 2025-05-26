@@ -7,6 +7,7 @@ import id.co.bcaf.goceng.models.Loan;
 import id.co.bcaf.goceng.models.LoanLog;
 import id.co.bcaf.goceng.repositories.ApplicationRepository;
 import id.co.bcaf.goceng.repositories.CustomerRepository;
+import id.co.bcaf.goceng.repositories.LoanRepository;
 import id.co.bcaf.goceng.services.CustomerService;
 import id.co.bcaf.goceng.services.LoanApplicationService;
 import id.co.bcaf.goceng.services.LoanService;
@@ -29,6 +30,7 @@ import java.util.UUID;
 public class LoanController {
 
     private final LoanService loanService;
+    private final LoanRepository loanRepository;
     private final ApplicationRepository applicationRepository;
     private final CustomerRepository customerRepository;
     private final CustomerService customerService;
@@ -120,4 +122,11 @@ public class LoanController {
         LoanResponse response = loanService.simulateLoan(loanAmount, interestRate, tenor, customer);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/total-disbursed")
+    public ResponseEntity<BigDecimal> getTotalLoanDisbursed() {
+        BigDecimal total = loanRepository.sumLoanAmount(); // Use custom query or Spring Data @Query
+        return ResponseEntity.ok(total != null ? total : BigDecimal.ZERO);
+    }
+
 }

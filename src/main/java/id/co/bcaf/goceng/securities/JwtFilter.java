@@ -37,6 +37,7 @@ public class JwtFilter extends GenericFilterBean {
             "/be/users/register",
             "/be/auth/forgot-password",
             "/be/auth/reset-password",
+            "/be/loans/total-disbursed",
             "/swagger-ui/**",
             "/v3/api-docs/**"
     );
@@ -61,6 +62,8 @@ public class JwtFilter extends GenericFilterBean {
         String requestURI = httpRequest.getRequestURI();
 
         logger.info("JWT Filter triggered for URI: {}", requestURI);
+        boolean isPublic = isPublicEndpoint(requestURI);
+        logger.info("Is Public Endpoint? {}", isPublic);
 
         if (isPublicEndpoint(requestURI)) {
             logger.info("Request URI '{}' is public. Skipping JWT validation.", requestURI);

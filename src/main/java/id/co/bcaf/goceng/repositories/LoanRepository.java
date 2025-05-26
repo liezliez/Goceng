@@ -36,4 +36,8 @@ public interface LoanRepository extends JpaRepository<Loan, UUID> {
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate
     );
+
+    @Query("SELECT SUM(l.loanAmount) FROM Loan l WHERE l.status = 'ACTIVE'")
+    BigDecimal sumLoanAmount();
+
 }

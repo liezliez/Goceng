@@ -4,6 +4,7 @@ import id.co.bcaf.goceng.securities.JwtFilter;
 import id.co.bcaf.goceng.securities.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -38,9 +39,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Auth-related and public registration, password reset
                         .requestMatchers(
-                                "/auth/login", "/auth/register",
+                                "/auth/login", "/auth/register", "/loans/total-disbursed",
                                 "/users/register", "/auth/forgot-password",
                                 "/auth/reset-password",  "/roles").permitAll()
 
@@ -76,7 +78,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200")); // Adjust for deployed frontend
+//        config.setAllowedOrigins(List.of("http://localhost:4200")); // Adjust for deployed frontend
+        config.addAllowedOriginPattern("http://localhost:4200");
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
