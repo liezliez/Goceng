@@ -35,7 +35,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public Employee createEmployee(UUID idUser, Integer idRole) {
+    public Employee createEmployee(UUID idUser, Integer idRole, UUID branchId) {
         User user = userRepository.findById(idUser)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + idUser));
 
@@ -48,8 +48,8 @@ public class EmployeeService {
         Role role = roleRepository.findById(idRole)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found: " + idRole));
 
-        Branch branch = branchRepository.findById(DEFAULT_BRANCH_ID)
-                .orElseThrow(() -> new EntityNotFoundException("Branch not found: " + DEFAULT_BRANCH_ID));
+        Branch branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found: " + branchId));
 
         user.setRole(role);
         if (user.getAccountStatus() == null) {
@@ -65,12 +65,12 @@ public class EmployeeService {
 
         Employee savedEmployee = employeeRepository.save(employee);
 
-        // Link employee to user and save user once
         user.setEmployee(savedEmployee);
         userRepository.save(user);
 
         return savedEmployee;
     }
+
 
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();

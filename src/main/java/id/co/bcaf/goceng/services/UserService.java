@@ -123,7 +123,7 @@ public class UserService {
         user = userRepository.save(user);
 
         // Create employee for user
-        employeeService.createEmployee(user.getIdUser(), role.getIdRole());
+        employeeService.createEmployee(user.getIdUser(), role.getIdRole(), user.getBranch().getId());
 
         return user;
     }
