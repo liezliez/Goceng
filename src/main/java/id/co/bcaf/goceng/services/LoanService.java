@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -52,19 +54,43 @@ public class LoanService {
     }
 
     private BigDecimal calculateInstallment(BigDecimal principal, BigDecimal annualInterestRate, int tenorMonths) {
-        BigDecimal monthlyInterest = annualInterestRate.divide(BigDecimal.valueOf(12), 10, BigDecimal.ROUND_HALF_UP)
-                .divide(BigDecimal.valueOf(100), 10, BigDecimal.ROUND_HALF_UP);
+        BigDecimal monthlyInterest = annualInterestRate
+                .divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP)
+                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         if (monthlyInterest.compareTo(BigDecimal.ZERO) == 0) {
-            return principal.divide(BigDecimal.valueOf(tenorMonths), 2, BigDecimal.ROUND_HALF_UP);
+            return principal.divide(BigDecimal.valueOf(tenorMonths), 2, RoundingMode.HALF_UP);
         }
 
         BigDecimal onePlusR = BigDecimal.ONE.add(monthlyInterest);
-        BigDecimal denominator = BigDecimal.ONE.subtract(onePlusR.pow(-tenorMonths, java.math.MathContext.DECIMAL128));
+        BigDecimal onePlusRPowerN = onePlusR.pow(tenorMonths, MathContext.DECIMAL128);
+        BigDecimal denominator = BigDecimal.ONE.subtract(BigDecimal.ONE.divide(onePlusRPowerN, 10, RoundingMode.HALF_UP));
         BigDecimal numerator = principal.multiply(monthlyInterest);
 
-        return numerator.divide(denominator, 2, BigDecimal.ROUND_HALF_UP);
+        return numerator.divide(denominator, 2, RoundingMode.HALF_UP);
     }
+
+
+//    public LoanResponse simulateLoan(BigDecimal loanAmount, BigDecimal interestRate, int tenor, CustomerResponse customer) {
+//        BigDecimal monthlyInstallment = calculateInstallment(loanAmount, interestRate, tenor);
+//
+//        return LoanResponse.builder()
+//                .id(null)
+//                .customerId(customer.getIdCustomer())
+//                .customerName(customer.getName())
+//                .loanAmount(loanAmount)
+//                .tenor(tenor)
+//                .installment(monthlyInstallment)
+//                .interest(interestRate)
+//                .remainingTenor(tenor)
+//                .remainingPrincipal(loanAmount)
+//                .totalPaid(BigDecimal.ZERO)
+//                .plafonType("Standard")
+//                .plafonLimit(BigDecimal.valueOf(1_000_000))
+//                .createdAt(LocalDateTime.now())
+//                .updatedAt(LocalDateTime.now())
+//                .build();
+//    }
 
     public LoanResponse simulateLoan(BigDecimal loanAmount, BigDecimal interestRate, int tenor, CustomerResponse customer) {
         BigDecimal monthlyInstallment = calculateInstallment(loanAmount, interestRate, tenor);
@@ -80,12 +106,13 @@ public class LoanService {
                 .remainingTenor(tenor)
                 .remainingPrincipal(loanAmount)
                 .totalPaid(BigDecimal.ZERO)
-                .plafonType("Standard")
-                .plafonLimit(BigDecimal.valueOf(1_000_000))
+                .plafonType(customer.getPlafonType()) // use from response
+                .plafonLimit(customer.getCreditLimit()) // use from response
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
     }
+
 
     @Transactional
     public LoanResponse updateLoanPartially(UUID loanId, LoanUpdateRequest request) {

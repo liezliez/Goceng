@@ -26,18 +26,16 @@ INSERT INTO branch (id_branch, name, address, city, province, latitude, longitud
   ('B8828AE4-2266-4634-BB2A-4B8C870B32F5', 'Padang', 'Jl. Ahmad Yani No.7', 'Padang', 'Sumatera Barat', -0.9470, 100.4170);
 
 INSERT INTO users (id,account_status,email,fcmtoken,name,password,id_branch,id_role) VALUES
-	 (N'72A54A2B-6F4F-48F4-BFE7-000DF677C706',N'ACTIVE',N'customer@example.org',N'dx4ycamHRWatyK4O7mx64X:APA91bHchjcA2dJzTikUTazGRgKsvIBtfPq93hSwlQ_uUx8Y8eoNgTYyZ_Qj72ePE3LrEmAHjobFhc_H8VriMv7dcqRc5cMA_A902ea6wzkcd5EZtBqJf9Q',N'Customer',N'$2a$10$2Sz6mkMOfi31bRHVBFuGTOSJAWWe3E/wQgkR8m185J0NKgiYPMoj.',N'42F47C49-01B9-423A-AA56-D160F8196641',2),
-	 (N'E26A82D4-4F5D-4226-8593-19251B776277',N'ACTIVE',N'aisyah@example.org',N'dx4ycamHRWatyK4O7mx64X:APA91bHchjcA2dJzTikUTazGRgKsvIBtfPq93hSwlQ_uUx8Y8eoNgTYyZ_Qj72ePE3LrEmAHjobFhc_H8VriMv7dcqRc5cMA_A902ea6wzkcd5EZtBqJf9Q',N'Aisyah',N'$2a$10$hKiT.zL0jHE2Q/vkz5ULiuz1IUtE9AewnUi3bpmj5m8.rb5E5uEP6',N'42F47C49-01B9-423A-AA56-D160F8196641',2),
-	 (N'D223A1E1-1416-4CE8-9548-475ACE3AC692',N'ACTIVE',N'liezarda@example.org',N'dx4ycamHRWatyK4O7mx64X:APA91bHchjcA2dJzTikUTazGRgKsvIBtfPq93hSwlQ_uUx8Y8eoNgTYyZ_Qj72ePE3LrEmAHjobFhc_H8VriMv7dcqRc5cMA_A902ea6wzkcd5EZtBqJf9Q',N'liezarda febryan',N'$2a$10$MMQxoalnyO2XHWRORj71re0UVPHqK9VxBYQBf90W2mHk37eDj6Rkm',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
+	 (N'72A54A2B-6F4F-48F4-BFE7-000DF677C706',N'ACTIVE',N'customer@example.org',N'dx4ycamHRWatyK4O7mx64X:APA91bHchjcA2dJzTikUTazGRgKsvIBtfPq93hSwlQ_uUx8Y8eoNgTYyZ_Qj72ePE3LrEmAHjobFhc_H8VriMv7dcqRc5cMA_A902ea6wzkcd5EZtBqJf9Q',N'Customer',N'$2a$10$2Sz6mkMOfi31bRHVBFuGTOSJAWWe3E/wQgkR8m185J0NKgiYPMoj.',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
+	 (N'E26A82D4-4F5D-4226-8593-19251B776277',N'ACTIVE',N'aisyah@example.org',N'dx4ycamHRWatyK4O7mx64X:APA91bHchjcA2dJzTikUTazGRgKsvIBtfPq93hSwlQ_uUx8Y8eoNgTYyZ_Qj72ePE3LrEmAHjobFhc_H8VriMv7dcqRc5cMA_A902ea6wzkcd5EZtBqJf9Q',N'Aisyah',N'$2a$10$hKiT.zL0jHE2Q/vkz5ULiuz1IUtE9AewnUi3bpmj5m8.rb5E5uEP6',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',2),
 	 (N'7E008E63-4B4F-4CF7-8E41-813593066A7A',N'ACTIVE',N'superadmin@example.org',NULL,N'Superadmin',N'$2a$10$lWw4y4z9aYLIcAMfJzSaeOKc2D8euLhTo5Jub6fOyOMTnum8PkIRy',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',1),
 	 (N'2A733039-184A-4B75-A92E-9ED920481C12',N'ACTIVE',N'marketing@example.org',NULL,N'Marketing',N'$2a$10$PULiXRDwgBxIRvePMqMfcu3chjEodn4evV7S2PzMictKiEGciAu2e',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',3),
 	 (N'6E8A1D43-BDA8-4E45-8655-D276AD0CF0C0',N'ACTIVE',N'bm@example.org',NULL,N'Branch Manager',N'$2a$10$Nj/izbUcFCXiUzxWf2FFL.oQoU7kpx.hdOBGyna8eNhWXGJdkCJiO',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',4),
 	 (N'2871926D-1E9C-4E3A-9915-F5A66C2EBC25',N'ACTIVE',N'bo@example.org',NULL,N'Back Office',N'$2a$10$db8Q10H2o5NgYoMFWI4/SeRYz2Y/DYcPOZOS6dZ4XbSkX2TjQdtTe',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',5);
 
 INSERT INTO customers (id,account_no,address,credit_limit,date_of_birth,emergency_call,home_ownership_status,mother_maiden_name,name,nik,occupation,place_of_birth,salary,telp_no,url_ktp,url_selfie,id_plafon,id_user) VALUES
-	 (N'41C7C78A-DC33-4DEF-89AD-11BB5522A876',NULL,NULL,10000000.00,NULL,NULL,NULL,NULL,N'Aisyah',N'6555598989',NULL,NULL,NULL,NULL,NULL,NULL,N'9C38D7E0-5C7E-4A58-A527-0D11F4B6A6A1',N'E26A82D4-4F5D-4226-8593-19251B776277'),
-	 (N'2BE4BAF2-AB97-4CC0-A747-2279E7D8F288',N'65789997',N'bskskmdmdd',8154434.00,'2025-05-21',N'0897648431',N'Punya snediri',N'wati',N'Arda',N'32554646464',N'software engineer',N'baturaja',50000000.00,N'084645434',N'https://res.cloudinary.com/driygaq4s/image/upload/v1748104240/v0mv0drouiqxdkswx5vo.jpg',N'https://res.cloudinary.com/driygaq4s/image/upload/v1748104245/peobxkxlkhwi004n6qul.jpg',N'9C38D7E0-5C7E-4A58-A527-0D11F4B6A6A1',N'72A54A2B-6F4F-48F4-BFE7-000DF677C706');
-
+	 (N'41C7C78A-DC33-4DEF-89AD-11BB5522A876',NULL,NULL,5000000.00,NULL,NULL,NULL,NULL,N'Aisyah',N'6555598989',NULL,NULL,NULL,NULL,NULL,NULL,N'9C38D7E0-5C7E-4A58-A527-0D11F4B6A6A1',N'E26A82D4-4F5D-4226-8593-19251B776277'),
+	 (N'2BE4BAF2-AB97-4CC0-A747-2279E7D8F288',N'65789997',N'bskskmdmdd',5000000.00,'2025-05-21',N'0897648431',N'Punya snediri',N'wati',N'Arda',N'32554646464',N'software engineer',N'baturaja',50000000.00,N'084645434',N'https://res.cloudinary.com/driygaq4s/image/upload/v1748104240/v0mv0drouiqxdkswx5vo.jpg',N'https://res.cloudinary.com/driygaq4s/image/upload/v1748104245/peobxkxlkhwi004n6qul.jpg',N'9C38D7E0-5C7E-4A58-A527-0D11F4B6A6A1',N'72A54A2B-6F4F-48F4-BFE7-000DF677C706');
 
  INSERT INTO employees (id,nip,name,version,work_status,id_branch,id_user) VALUES
 	 (N'D0C53754-7B37-41D7-9378-1F8CC72E645E',N'2025BO001',N'Taurean.Wyman91',0,N'ACTIVE',N'B43A94D7-4C5E-4F2D-8A7B-02477F36D65F',N'2871926D-1E9C-4E3A-9915-F5A66C2EBC25'),
@@ -47,23 +45,10 @@ INSERT INTO customers (id,account_no,address,credit_limit,date_of_birth,emergenc
 
 -- Insert features
 INSERT INTO features (feature_name) VALUES
-  ('VIEW_USER'),
   ('VIEW_DASHBOARD'),
-  ('VIEW_ALL_USERS'),
-  ('VIEW_USER_BY_ID'),
-  ('VIEW_USERS_BY_STATUS'),
   ('CREATE_USER'),
-  ('UPDATE_USER'),
-  ('DELETE_USER'),
-  ('RESTORE_USER'),
   ('APPROVE_APPLICATION'),
-  ('REJECT_APPLICATION'),
-  ('VIEW_LOAN'),
-  ('CREATE_LOAN'),
-  ('UPDATE_LOAN'),
-  ('DELETE_LOAN'),
-  ('VIEW_REPORTS'),
-  ('MANAGE_SETTINGS');
+  ('MANAGE_USERS'),
 
 -- Assign features to roles
 -- SUPERADMIN gets all features
@@ -73,31 +58,15 @@ SELECT r.id, f.id FROM roles r CROSS JOIN features f WHERE r.role_name = 'ROLE_S
 -- MARKETING gets selected features
 INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_MARKETING' AND f.feature_name IN (
-  'VIEW_USER',
   'VIEW_DASHBOARD',
-  'VIEW_ALL_USERS',
-  'VIEW_USER_BY_ID',
-  'VIEW_USERS_BY_STATUS',
-  'CREATE_USER',
   'APPROVE_APPLICATION',
-  'REJECT_APPLICATION'
 );
 
 -- BRANCH_MANAGER gets selected features
 INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BRANCH_MANAGER' AND f.feature_name IN (
-  'VIEW_USER',
   'VIEW_DASHBOARD',
-  'VIEW_ALL_USERS',
-  'VIEW_USER_BY_ID',
-  'VIEW_USERS_BY_STATUS',
-  'CREATE_USER',
-  'UPDATE_USER',
-  'DELETE_USER',
   'APPROVE_APPLICATION',
-  'REJECT_APPLICATION',
-  'VIEW_LOAN',
-  'VIEW_REPORTS'
 );
 
 -- BACK_OFFICE gets selected features
@@ -105,23 +74,5 @@ INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BACK_OFFICE' AND f.feature_name IN (
   'VIEW_USER',
   'VIEW_DASHBOARD',
-  'VIEW_ALL_USERS',
-  'VIEW_USER_BY_ID',
-  'VIEW_USERS_BY_STATUS',
-  'CREATE_USER',
-  'UPDATE_USER',
-  'DELETE_USER',
-  'VIEW_LOAN',
-  'CREATE_LOAN',
-  'UPDATE_LOAN',
-  'DELETE_LOAN'
-);
-
--- CUSTOMER gets limited features
-INSERT INTO role_features (id_role, id_feature)
-SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_CUSTOMER' AND f.feature_name IN (
-  'VIEW_USER',
-  'VIEW_DASHBOARD',
-  'VIEW_USER_BY_ID',
-  'VIEW_LOAN'
+  'APPROVE_APPLICATION',
 );
