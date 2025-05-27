@@ -27,4 +27,6 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     List<Application> findByCustomer_User_idUser(UUID idUser);
 
+    long countByBranchId(UUID branchId);
+
 }
