@@ -3,7 +3,7 @@ name: Deploy Spring Boot to Ubuntu VM
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
@@ -24,6 +24,3 @@ jobs:
 
       - name: Build Spring Boot App (Maven)
         run: ./mvnw clean package -DskipTests
-
-
-
