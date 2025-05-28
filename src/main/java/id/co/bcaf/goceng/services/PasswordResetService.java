@@ -39,6 +39,9 @@ public class PasswordResetService {
     @Value("${mailtrap.password}")
     private String mailPassword;
 
+    @Value("${app.frontend.reset-url}")
+    private String frontendResetUrl;
+
     public PasswordResetService(UserRepository userRepository,
                                 PasswordResetTokenRepository tokenRepository,
                                 PasswordEncoder passwordEncoder) {
@@ -58,6 +61,7 @@ public class PasswordResetService {
         }
 
         tokenRepository.deleteByUser(user);
+        tokenRepository.flush(); // <- Ensure old token is flushed out of the persistence context
 
         String token = generateSecureToken();
 
@@ -69,6 +73,7 @@ public class PasswordResetService {
 
         sendEmail(email, token);
     }
+
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
@@ -88,7 +93,10 @@ public class PasswordResetService {
 
     private void sendEmail(String to, String token) {
         String subject = "Reset Your Password";
-        String resetUrl = "http://localhost:8080/auth/reset-password?token=" + token;
+
+        // Dynamically use reset link from application.properties
+        String resetUrl = frontendResetUrl + "?token=" + token;
+
         String body = """
                 <html>
                 <body>

@@ -15,9 +15,9 @@ public class FirebaseInitializer {
     @PostConstruct
     public void initialize() {
         try {
-            ClassPathResource resource = new ClassPathResource("goceng-app-6e913-firebase-adminsdk-fbsvc-dd705f02ac.json");
+//            ClassPathResource resource = new ClassPathResource("goceng-app-6e913-firebase-adminsdk-fbsvc-dd705f02ac.json");
 
-//            ClassPathResource resource = new ClassPathResource("goceng-app-6e913-firebase-adminsdk-fbsvc-6d0a7d908c.json");
+            ClassPathResource resource = new ClassPathResource("goceng-app-6e913-firebase-adminsdk-fbsvc-6d0a7d908c.json");
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(resource.getInputStream()))
                     .build();
