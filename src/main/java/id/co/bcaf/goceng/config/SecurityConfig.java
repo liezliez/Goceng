@@ -42,9 +42,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Auth-related and public registration, password reset
                         .requestMatchers(
-                                "/auth/login", "/auth/register", "/loans/total-disbursed",
-                                "/users/register", "/auth/forgot-password",
-                                "/auth/reset-password",  "/roles").permitAll()
+                                "/auth/login",
+                                "/auth/register",
+                                "/auth/forgot-password",
+                                "/auth/reset-password",
+                                "/users/register",
+                                "/loans/total-disbursed",
+                                "/roles",
+                                "/error"
+                        ).permitAll()
 
                         // Authenticated but role-neutral access
                         .requestMatchers("/users/me", "/users/test-access", "/role-features/**").authenticated()

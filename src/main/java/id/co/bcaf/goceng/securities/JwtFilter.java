@@ -38,6 +38,7 @@ public class JwtFilter extends GenericFilterBean {
             "/be/auth/forgot-password",
             "/be/auth/reset-password",
             "/be/loans/total-disbursed",
+            "/be/error",
             "/swagger-ui/**",
             "/v3/api-docs/**"
     );
