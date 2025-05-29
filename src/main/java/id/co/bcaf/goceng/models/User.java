@@ -46,20 +46,22 @@ public class User implements UserDetails {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_branch")
-    @JsonIgnore
-    private Branch branch;
+    private Branch branch; // unignored to show in JSON
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonManagedReference("user-employee")
     private Employee employee;
 
-    // Explicit getter/setter for fcmToken (optional but can help IDEs)
     @Column(name = "fcmtoken")
     private String fcmToken;
 
-    public String getFcmToken() { return fcmToken; }
-    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    public String getFcmToken() {
+        return fcmToken;
+    }
 
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
 
     // UserDetails implementation
     @Override
@@ -115,6 +117,7 @@ public class User implements UserDetails {
                 ", email='" + email + '\'' +
                 ", accountStatus=" + accountStatus +
                 ", role=" + (role != null ? role.getRoleName() : null) +
+                ", branch=" + (branch != null ? branch.getName() : null) +
                 '}';
     }
 }

@@ -42,6 +42,9 @@ INSERT INTO customers (id,account_no,address,credit_limit,date_of_birth,emergenc
 	 (N'58B4B954-2A35-4301-84FE-ACD561D8BA0F',N'2025MK001',N'Blaze.Brekke31',0,N'ACTIVE',N'42F47C49-01B9-423A-AA56-D160F8196641',N'2A733039-184A-4B75-A92E-9ED920481C12'),
 	 (N'4AE969C1-6134-446E-B39E-F100C50F1E05',N'2025BM001',N'Serena.Gutkowski',0,N'ACTIVE',N'42F47C49-01B9-423A-AA56-D160F8196641',N'6E8A1D43-BDA8-4E45-8655-D276AD0CF0C0');
 
+INSERT INTO application (id,amount,back_office_assigned_time,back_office_note,branch_manager_assigned_time,branch_manager_note,created_at,interest_rate,marketing_assigned_time,marketing_note,nip_back_office,nip_branch_manager,nip_marketing,plafon_limit,plafon_type,purpose,status,tenor,updated_at,id_back_office_assigned,id_branch,id_branch_manager_assigned,id_customer,id_marketing_assigned,id_plafon) VALUES
+	 (N'BE6DF978-6BDC-4D47-B170-4B39783BD749',680000.00,NULL,NULL,NULL,NULL,'2025-05-28 06:15:44.808',0.05,'2025-05-28 06:27:27.760',N'Bagus nih bos',NULL,NULL,N'2025MK001',5000000.00,N'BRONZE',N'Kado anak',N'PENDING_BRANCH_MANAGER',12,'2025-05-28 06:27:27.774',NULL,N'42F47C49-01B9-423A-AA56-D160F8196641',NULL,N'2BE4BAF2-AB97-4CC0-A747-2279E7D8F288',N'2A733039-184A-4B75-A92E-9ED920481C12',N'9C38D7E0-5C7E-4A58-A527-0D11F4B6A6A1');
+
 
 -- Insert features
 INSERT INTO features (feature_name) VALUES
