@@ -43,7 +43,11 @@ INSERT INTO customers (id,account_no,address,credit_limit,date_of_birth,emergenc
 	 (N'4AE969C1-6134-446E-B39E-F100C50F1E05',N'2025BM001',N'Serena.Gutkowski',0,N'ACTIVE',N'42F47C49-01B9-423A-AA56-D160F8196641',N'6E8A1D43-BDA8-4E45-8655-D276AD0CF0C0');
 
 INSERT INTO application (id,amount,back_office_assigned_time,back_office_note,branch_manager_assigned_time,branch_manager_note,created_at,interest_rate,marketing_assigned_time,marketing_note,nip_back_office,nip_branch_manager,nip_marketing,plafon_limit,plafon_type,purpose,status,tenor,updated_at,id_back_office_assigned,id_branch,id_branch_manager_assigned,id_customer,id_marketing_assigned,id_plafon) VALUES
-	 (N'BE6DF978-6BDC-4D47-B170-4B39783BD749',680000.00,NULL,NULL,NULL,NULL,'2025-05-28 06:15:44.808',0.05,'2025-05-28 06:27:27.760',N'Bagus nih bos',NULL,NULL,N'2025MK001',5000000.00,N'BRONZE',N'Kado anak',N'PENDING_BRANCH_MANAGER',12,'2025-05-28 06:27:27.774',NULL,N'42F47C49-01B9-423A-AA56-D160F8196641',NULL,N'2BE4BAF2-AB97-4CC0-A747-2279E7D8F288',N'2A733039-184A-4B75-A92E-9ED920481C12',N'9C38D7E0-5C7E-4A58-A527-0D11F4B6A6A1');
+	 (N'BE6DF978-6BDC-4D47-B170-4B39783BD749',680000.00,'2025-05-29 13:46:39.716',N'Gas','2025-05-29 13:42:10.319',N'boleh dah gas hayu','2025-05-28 06:15:44.808',0.05,'2025-05-28 06:27:27.760',N'Bagus nih bos',N'2025BO001',N'2025BM001',N'2025MK001',5000000.00,N'BRONZE',N'Kado anak',N'APPROVED',12,'2025-05-29 13:46:39.718',N'2871926D-1E9C-4E3A-9915-F5A66C2EBC25',N'42F47C49-01B9-423A-AA56-D160F8196641',N'6E8A1D43-BDA8-4E45-8655-D276AD0CF0C0',N'2BE4BAF2-AB97-4CC0-A747-2279E7D8F288',N'2A733039-184A-4B75-A92E-9ED920481C12',N'9C38D7E0-5C7E-4A58-A527-0D11F4B6A6A1');
+
+
+INSERT INTO loan (id,created_at,disbursed_at,installment,interest_rate,loan_amount,remaining_principal,remaining_tenor,status,tenor,total_paid,updated_at,id_application,id_customer) VALUES
+	 (N'95E8CE54-64D9-4F0A-AABF-DEF03A0504EC','2025-05-29 13:46:39.721','2025-05-29 13:46:39.719',56682.02,0.05,680000.00,680000.00,12,N'ACTIVE',12,0.00,'2025-05-29 13:46:39.721',N'BE6DF978-6BDC-4D47-B170-4B39783BD749',N'2BE4BAF2-AB97-4CC0-A747-2279E7D8F288');
 
 
 -- Insert features
@@ -54,6 +58,7 @@ INSERT INTO features (feature_name) VALUES
   ('MANAGE_USERS'),
   ('MANAGE_BRANCHES'),
   ('CHANGE_PASSWORD');
+
 
 -- Assign features to roles
 -- SUPERADMIN gets all features

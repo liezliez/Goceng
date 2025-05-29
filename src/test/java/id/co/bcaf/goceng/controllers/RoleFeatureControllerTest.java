@@ -16,6 +16,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.security.core.userdetails.User;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -44,10 +45,10 @@ public class RoleFeatureControllerTest {
     public void testAddFeatureToRole_Success() {
         when(roleFeatureService.addFeatureToRole("ROLE_ADMIN", "FEATURE_X")).thenReturn(true);
 
-        ResponseEntity<String> response = controller.addFeatureToRole("ROLE_ADMIN", "FEATURE_X");
+        ResponseEntity<Map<String, String>> response = controller.addFeatureToRole("ROLE_ADMIN", "FEATURE_X");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Feature successfully added to role.", response.getBody());
+        assertEquals("Feature successfully added to role.", response.getBody().get("message"));
         verify(roleFeatureService).addFeatureToRole("ROLE_ADMIN", "FEATURE_X");
     }
 
@@ -55,18 +56,18 @@ public class RoleFeatureControllerTest {
     public void testAddFeatureToRole_AlreadyExists() {
         when(roleFeatureService.addFeatureToRole("ROLE_ADMIN", "FEATURE_X")).thenReturn(false);
 
-        ResponseEntity<String> response = controller.addFeatureToRole("ROLE_ADMIN", "FEATURE_X");
+        ResponseEntity<Map<String, String>> response = controller.addFeatureToRole("ROLE_ADMIN", "FEATURE_X");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Feature already associated with the role or invalid inputs.", response.getBody());
+        assertEquals("Feature already associated with the role or invalid inputs.", response.getBody().get("error"));
     }
 
     @Test
     public void testAddFeatureToRole_InvalidInput() {
-        ResponseEntity<String> response = controller.addFeatureToRole("", "");
+        ResponseEntity<Map<String, String>> response = controller.addFeatureToRole("", "");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Role name and feature name must not be empty.", response.getBody());
+        assertEquals("Role name and feature name must not be empty.", response.getBody().get("error"));
         verifyNoInteractions(roleFeatureService);
     }
 
@@ -74,20 +75,20 @@ public class RoleFeatureControllerTest {
     public void testRemoveFeatureFromRole_Success() {
         when(roleFeatureService.removeFeatureFromRole("ROLE_USER", "FEATURE_Y")).thenReturn(true);
 
-        ResponseEntity<String> response = controller.removeFeatureFromRole("ROLE_USER", "FEATURE_Y");
+        ResponseEntity<Map<String, String>> response = controller.removeFeatureFromRole("ROLE_USER", "FEATURE_Y");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Feature successfully removed from role.", response.getBody());
+        assertEquals("Feature successfully removed from role.", response.getBody().get("message"));
     }
 
     @Test
     public void testRemoveFeatureFromRole_NotFound() {
         when(roleFeatureService.removeFeatureFromRole("ROLE_USER", "FEATURE_Y")).thenReturn(false);
 
-        ResponseEntity<String> response = controller.removeFeatureFromRole("ROLE_USER", "FEATURE_Y");
+        ResponseEntity<Map<String, String>> response = controller.removeFeatureFromRole("ROLE_USER", "FEATURE_Y");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Feature not associated with the role or invalid inputs.", response.getBody());
+        assertEquals("Feature not associated with the role or invalid inputs.", response.getBody().get("error"));
     }
 
     @Test

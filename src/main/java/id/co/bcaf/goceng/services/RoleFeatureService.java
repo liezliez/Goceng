@@ -6,7 +6,7 @@ import id.co.bcaf.goceng.models.RoleFeature;
 import id.co.bcaf.goceng.repositories.RoleFeatureRepository;
 import id.co.bcaf.goceng.repositories.RoleRepository;
 import id.co.bcaf.goceng.repositories.FeatureRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
@@ -16,18 +16,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RoleFeatureService {
 
     private static final Logger logger = LoggerFactory.getLogger(RoleFeatureService.class);
 
-    @Autowired
-    private RoleFeatureRepository roleFeatureRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private FeatureRepository featureRepository;
+    private final RoleFeatureRepository roleFeatureRepository;
+    private final RoleRepository roleRepository;
+    private final FeatureRepository featureRepository;
 
     @Transactional
     public boolean addFeatureToRole(final String roleName, final String featureName) {
@@ -74,6 +70,13 @@ public class RoleFeatureService {
         return has;
     }
 
+    public List<String> getAllFeatures() {
+        return featureRepository.findAll().stream()
+                .map(feature -> feature.getFeatureName())
+                .collect(Collectors.toList());
+    }
+
+
     public List<String> getFeaturesByRole(final String roleName) {
         Role role = findRole(roleName);
         List<RoleFeature> roleFeatures = roleFeatureRepository.findByRole(role);
@@ -87,39 +90,27 @@ public class RoleFeatureService {
     public List<String> getFeaturesByRoleId(Long roleId) {
         Role role = roleRepository.findById(Math.toIntExact(roleId))
                 .orElseThrow(() -> new IllegalArgumentException("Role not found with id: " + roleId));
-        List<RoleFeature> roleFeatures = roleFeatureRepository.findByRole(role);
-        return roleFeatures.stream()
+        return roleFeatureRepository.findByRole(role).stream()
                 .map(rf -> rf.getFeature().getFeatureName())
                 .collect(Collectors.toList());
     }
 
-
-
-    private String normalizeRoleName(String roleName) {
+    private Role findRole(String roleName) {
         if (roleName == null || roleName.isBlank()) {
             throw new IllegalArgumentException("Role name cannot be null or empty");
         }
-        // Remove duplicated ROLE_ prefixes, e.g. ROLE_ROLE_ADMIN -> ROLE_ADMIN
-        while (roleName.startsWith("ROLE_ROLE_")) {
-            roleName = roleName.substring(5);
-        }
-        if (!roleName.startsWith("ROLE_")) {
-            roleName = "ROLE_" + roleName;
-        }
-        return roleName;
-    }
 
-    private Role findRole(String roleName) {
-        String normalized = normalizeRoleName(roleName);
-        logger.debug("Looking up role by name: {}", normalized);
-        return roleRepository.findByRoleName(normalized)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + normalized));
+        // Do NOT normalize, expect role names as-is from authorities (e.g., ROLE_ADMIN)
+        logger.debug("Looking up role by name: {}", roleName);
+        return roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName));
     }
 
     private Feature findFeature(String featureName) {
         if (featureName == null || featureName.isBlank()) {
             throw new IllegalArgumentException("Feature name cannot be null or empty");
         }
+
         return featureRepository.findByFeatureName(featureName)
                 .orElseThrow(() -> new IllegalArgumentException("Feature not found: " + featureName));
     }
