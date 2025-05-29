@@ -2,6 +2,7 @@ package id.co.bcaf.goceng.services;
 
 import id.co.bcaf.goceng.dto.AuthRequest;
 import id.co.bcaf.goceng.dto.AuthResponse;
+import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.repositories.UserRepository;
 import id.co.bcaf.goceng.utils.JwtUtil;
@@ -39,24 +40,31 @@ public class AuthService {
         String email = authRequest.getEmail();
         String password = authRequest.getPassword();
 
-        logger.info("Attempting login for email: {}", email);
-
+        // Retrieve user by email
         Optional<User> userOptional = userRepository.findByEmail(email);
 
+        // If user not found, deny access
         if (userOptional.isEmpty()) {
-            logger.warn("User not found for email: {}", email);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
         }
 
         User user = userOptional.get();
 
+        // Verify password correctness
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            logger.warn("Incorrect password for email: {}", email);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid login credentials");
         }
 
-        logger.info("Login successful for email: {}", email);
+        // Restrict login if account status is BANNED or DELETED
+        if (user.getAccountStatus() == AccountStatus.BANNED || user.getAccountStatus() == AccountStatus.DELETED) {
 
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Please contact goceng Customer Service at 1500666"
+            );
+        }
+
+        // Prepare JWT token and related user information
         String roleName = user.getRole().getRoleName();
         Long roleId = Long.valueOf(user.getRole().getIdRole());
 
@@ -65,10 +73,13 @@ public class AuthService {
 
         Long expiresAt = jwtUtil.extractExpiration(token).getTime().getTime();
 
+        // Fetch role-specific features/permissions
         List<String> userFeatures = roleFeatureService.getFeaturesByRoleId(roleId);
 
+        // Return authentication response containing JWT and user info
         return new AuthResponse(token, refreshToken, user.getUsername(), expiresAt, userFeatures);
     }
+
 
     public boolean isUserAuthenticated() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
