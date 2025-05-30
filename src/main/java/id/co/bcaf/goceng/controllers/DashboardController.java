@@ -20,8 +20,10 @@ public class DashboardController {
 
     @GetMapping("/branch-summary")
     public BranchSummaryDTO getBranchSummary(@RequestParam UUID branchId) {
-        long totalUsers = userRepository.countByBranchId(branchId);
+        long branchUsers = userRepository.countByBranchId(branchId);
         long totalApplications = applicationRepository.countByBranchId(branchId);
-        return new BranchSummaryDTO(totalUsers, totalApplications);
+        long totalUsersOverall = userRepository.count();
+        return new BranchSummaryDTO(branchUsers, totalApplications, totalUsersOverall);
     }
+
 }
