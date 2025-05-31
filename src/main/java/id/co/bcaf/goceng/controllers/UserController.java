@@ -63,7 +63,7 @@ public class UserController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers()
                 .stream()
@@ -73,7 +73,7 @@ public class UserController {
     }
 
     @GetMapping("/id/{id}")
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
         return userService.getUserById(id)
                 .map(this::toUserResponse)
@@ -82,7 +82,7 @@ public class UserController {
     }
 
     @GetMapping("/email")
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<UserResponse> getUserByEmail(@RequestParam String email) {
         return userService.getUserByEmail(email)
                 .map(this::toUserResponse)
@@ -91,7 +91,7 @@ public class UserController {
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<?> getUsersByStatus(@PathVariable String status) {
         try {
             AccountStatus accountStatus = AccountStatus.valueOf(status.toUpperCase());
@@ -183,7 +183,7 @@ public class UserController {
     }
 
     @GetMapping("/count-by-status")
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<Map<AccountStatus, Long>> countUsersByStatus() {
         return ResponseEntity.ok(userService.countUsersGroupedByStatus());
     }
