@@ -11,7 +11,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/dashboard")
-@PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_DASHBOARD')")
 public class DashboardController {
 
     @Autowired

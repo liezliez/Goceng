@@ -117,11 +117,13 @@ public class UserController {
     @PutMapping("/id/{id}")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @RequestBody @Valid UserRequest request) {
+        log.info("Updating user with ID: {}", id);
         return userService.updateUserFromRequest(id, request)
                 .map(this::toUserResponse)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
+
 
     @PutMapping("/id/{id}/edit")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")

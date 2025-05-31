@@ -61,7 +61,7 @@ public class PasswordResetService {
         }
 
         tokenRepository.deleteByUser(user);
-        tokenRepository.flush(); // <- Ensure old token is flushed out of the persistence context
+        tokenRepository.flush();
 
         String token = generateSecureToken();
 

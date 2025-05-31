@@ -85,14 +85,14 @@ public class LoanController {
         return ResponseEntity.ok(history);
     }
 
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_LOANS')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @GetMapping("/{loanId}/logs")
     public ResponseEntity<List<LoanLog>> getLoanLogs(@PathVariable UUID loanId) {
         List<LoanLog> logs = loanService.getLoanLogs(loanId);
         return ResponseEntity.ok(logs);
     }
 
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_LOANS','VIEW_LOANS')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @GetMapping("/search")
     public ResponseEntity<List<LoanResponse>> searchLoans(
             @RequestParam(required = false) UUID customerId,
@@ -117,7 +117,6 @@ public class LoanController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_LOANS')")
     @GetMapping("/total-disbursed")
     public ResponseEntity<BigDecimal> getTotalLoanDisbursed() {
         BigDecimal total = loanRepository.sumLoanAmount();

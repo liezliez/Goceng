@@ -59,7 +59,6 @@ public class JwtUtil {
                 .compact();
     }
 
-    // 📤 Extract token from Bearer header
     public String extractToken(String bearerToken) {
         if (bearerToken == null || !bearerToken.toLowerCase().startsWith("bearer ")) {
             throw new IllegalArgumentException("Invalid or missing Bearer token");
@@ -67,22 +66,18 @@ public class JwtUtil {
         return bearerToken.substring(7).trim();
     }
 
-    // 📧 Extract Email (Subject)
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // 👑 Extract Role
     public String extractRole(String token) {
         return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
-    // 📅 Extract Expiration
     public Date getExpirationDateFromToken(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    // ✅ Validate Token
     public boolean validateToken(String token, String email) {
         try {
             String extractedEmail = extractEmail(token);
@@ -93,18 +88,15 @@ public class JwtUtil {
         }
     }
 
-    // ⚠️ Check Expiration
     public boolean isTokenExpired(String token) {
         Date expiration = getExpirationDateFromToken(token);
         return expiration.before(new Date());
     }
 
-    // 🔍 Generic Claim Extractor
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         return claimsResolver.apply(extractAllClaims(token));
     }
 
-    // 🔓 Decode All Claims
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
