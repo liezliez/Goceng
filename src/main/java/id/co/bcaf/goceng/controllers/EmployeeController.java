@@ -10,6 +10,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,17 +26,20 @@ public class EmployeeController {
     private final JwtUtil jwtUtil;
 
     @PostMapping
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('CREATE_USER')")
     public ResponseEntity<Employee> create(@RequestBody CreateEmployeeRequest request) {
         Employee employee = employeeService.createEmployee(request.getId_user(), request.getId_role(), request.getBranchId());
         return ResponseEntity.status(HttpStatus.CREATED).body(employee);
     }
 
     @GetMapping
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<List<Employee>> getAll() {
         return ResponseEntity.ok(employeeService.getAllEmployees());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<Employee> getById(@PathVariable UUID id) {
         return employeeService.getEmployeeById(id)
                 .map(ResponseEntity::ok)
@@ -43,6 +47,7 @@ public class EmployeeController {
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<Employee> getByUserId(@PathVariable UUID userId) {
         return employeeService.findByUserId(userId)
                 .map(ResponseEntity::ok)
@@ -50,6 +55,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<Employee> update(@PathVariable UUID id, @RequestBody EmployeeUpdateRequest request) {
         return employeeService.updateEmployee(id, request)
                 .map(ResponseEntity::ok)
@@ -57,6 +63,7 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         return employeeService.deleteEmployee(id)
                 ? ResponseEntity.noContent().build()
@@ -64,6 +71,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}/restore")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<Void> restore(@PathVariable UUID id) {
         return employeeService.restoreEmployee(id)
                 ? ResponseEntity.noContent().build()

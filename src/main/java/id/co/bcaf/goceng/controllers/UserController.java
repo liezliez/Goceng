@@ -11,7 +11,6 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -27,7 +26,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -39,7 +37,7 @@ public class UserController {
         }
 
         return userService.getUserByEmail(principal.getName())
-                .map(user -> toUserResponse(user))
+                .map(this::toUserResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
@@ -49,15 +47,7 @@ public class UserController {
         log.info("Registering new customer: {}", request.getEmail());
 
         try {
-            UserRequest userRequest = new UserRequest();
-            userRequest.setName(request.getName());
-            userRequest.setEmail(request.getEmail());
-            userRequest.setPassword(request.getPassword());
-            userRequest.setNik(request.getNik());
-            userRequest.setId_branch(request.getId_branch());
-
             RegisterResponse registerResponse = userService.registerUser(request);
-
             return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", registerResponse));
         } catch (DataIntegrityViolationException ex) {
             log.error("Duplicate entry error: {}", ex.getMessage(), ex);
@@ -72,8 +62,8 @@ public class UserController {
         }
     }
 
-
     @GetMapping("/list")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers()
                 .stream()
@@ -83,6 +73,7 @@ public class UserController {
     }
 
     @GetMapping("/id/{id}")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
         return userService.getUserById(id)
                 .map(this::toUserResponse)
@@ -91,6 +82,7 @@ public class UserController {
     }
 
     @GetMapping("/email")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<UserResponse> getUserByEmail(@RequestParam String email) {
         return userService.getUserByEmail(email)
                 .map(this::toUserResponse)
@@ -99,6 +91,7 @@ public class UserController {
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<?> getUsersByStatus(@PathVariable String status) {
         try {
             AccountStatus accountStatus = AccountStatus.valueOf(status.toUpperCase());
@@ -114,16 +107,15 @@ public class UserController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-// @PreAuthorize("hasAuthority('CREATE_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<UserResponse> createUserFromRequest(@RequestBody @Valid CreateUserRequest request) {
         log.info("Creating user: {}", request.getEmail());
         User createdUser = userService.createUserFromRequest(request);
         return ResponseEntity.ok(toUserResponse(createdUser));
     }
 
-
     @PutMapping("/id/{id}")
-//    @PreAuthorize("hasAuthority('EDIT_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @RequestBody @Valid UserRequest request) {
         return userService.updateUserFromRequest(id, request)
                 .map(this::toUserResponse)
@@ -132,7 +124,7 @@ public class UserController {
     }
 
     @PutMapping("/id/{id}/edit")
-//    @PreAuthorize("hasAuthority('EDIT_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<UserResponse> editUser(@PathVariable UUID id, @RequestBody @Valid UserRequest request) {
         log.info("Editing user with ID: {}", id);
         return userService.updateUserFromRequest(id, request)
@@ -142,6 +134,7 @@ public class UserController {
     }
 
     @PutMapping("/change-password")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('CHANGE_PASSWORD')")
     public ResponseEntity<?> changePassword(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody @Valid ChangePasswordRequest request) {
@@ -170,10 +163,8 @@ public class UserController {
         }
     }
 
-
-
     @PutMapping("/id/{id}/delete")
-//    @PreAuthorize("hasAuthority('DELETE_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
         if (userService.deleteUser(id)) {
             return ResponseEntity.ok("User has been soft-deleted (status: DELETED)");
@@ -182,7 +173,7 @@ public class UserController {
     }
 
     @PutMapping("/id/{id}/restore")
-//    @PreAuthorize("hasAuthority('RESTORE_USER')")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
         if (userService.restoreUser(id)) {
             return ResponseEntity.ok("User restored to ACTIVE");
@@ -192,46 +183,11 @@ public class UserController {
     }
 
     @GetMapping("/count-by-status")
+    @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USER')")
     public ResponseEntity<Map<AccountStatus, Long>> countUsersByStatus() {
         return ResponseEntity.ok(userService.countUsersGroupedByStatus());
     }
 
-    private UserResponse toUserResponse(User user) {
-        UserResponse dto = new UserResponse();
-        dto.setId(user.getIdUser());
-        dto.setName(user.getName());
-        dto.setEmail(user.getEmail());
-        dto.setAccount_status(user.getStatus());
-
-        if (user.getRole() != null) {
-            UserResponse.RoleDto roleDto = new UserResponse.RoleDto();
-            roleDto.setId(user.getRole().getIdRole());
-            roleDto.setRoleName(user.getRole().getRoleName());
-            dto.setRole(roleDto);
-        } else {
-            dto.setRole(null);
-        }
-
-        if (user.getBranch() != null) {
-            UserResponse.BranchDto branchDto = new UserResponse.BranchDto();
-            branchDto.setId(user.getBranch().getId());      // Assuming getId() returns UUID
-            branchDto.setName(user.getBranch().getName());  // Assuming getName() exists
-            dto.setBranch(branchDto);
-        } else {
-            dto.setBranch(null);
-        }
-
-        if (user.getEmployee() != null) {
-            UserResponse.EmployeeDto employeeDto = new UserResponse.EmployeeDto();
-            employeeDto.setId(user.getEmployee().getId());     // Assuming getId() returns UUID
-            employeeDto.setName(user.getEmployee().getName()); // Assuming getName() exists
-            dto.setEmployee(employeeDto);
-        } else {
-            dto.setEmployee(null);
-        }
-
-        return dto;
-    }
     @PutMapping("/fcm-token")
     public ResponseEntity<?> updateFcmToken(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -260,4 +216,40 @@ public class UserController {
         }
     }
 
+    private UserResponse toUserResponse(User user) {
+        UserResponse dto = new UserResponse();
+        dto.setId(user.getIdUser());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setAccount_status(user.getStatus());
+
+        if (user.getRole() != null) {
+            UserResponse.RoleDto roleDto = new UserResponse.RoleDto();
+            roleDto.setId(user.getRole().getIdRole());
+            roleDto.setRoleName(user.getRole().getRoleName());
+            dto.setRole(roleDto);
+        } else {
+            dto.setRole(null);
+        }
+
+        if (user.getBranch() != null) {
+            UserResponse.BranchDto branchDto = new UserResponse.BranchDto();
+            branchDto.setId(user.getBranch().getId());
+            branchDto.setName(user.getBranch().getName());
+            dto.setBranch(branchDto);
+        } else {
+            dto.setBranch(null);
+        }
+
+        if (user.getEmployee() != null) {
+            UserResponse.EmployeeDto employeeDto = new UserResponse.EmployeeDto();
+            employeeDto.setId(user.getEmployee().getId());
+            employeeDto.setName(user.getEmployee().getName());
+            dto.setEmployee(employeeDto);
+        } else {
+            dto.setEmployee(null);
+        }
+
+        return dto;
+    }
 }
