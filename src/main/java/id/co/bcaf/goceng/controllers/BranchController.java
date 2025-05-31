@@ -4,6 +4,7 @@ import id.co.bcaf.goceng.dto.BranchRequest;
 import id.co.bcaf.goceng.models.Branch;
 import id.co.bcaf.goceng.services.BranchService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/branches")
+@PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_BRANCHES')")
 public class BranchController {
 
     private final BranchService branchService;
