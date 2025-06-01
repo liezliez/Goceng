@@ -10,6 +10,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
+/**
+ * REST controller for uploading customer images.
+ *
+ * Provides endpoints to upload and update:
+ * - Customer KTP image ({@link #uploadKtp})
+ * - Customer selfie image ({@link #uploadSelfie})
+ *
+ * Images are uploaded via multipart file requests, and the returned
+ * {@link CustomerResponse} reflects the updated customer information with
+ * new image URLs.
+ */
+
 @RestController
 @RequestMapping("/customers/upload")
 public class CustomerImageController {

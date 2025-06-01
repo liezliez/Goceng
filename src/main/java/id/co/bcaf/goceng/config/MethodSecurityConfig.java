@@ -12,6 +12,13 @@ import org.springframework.security.core.Authentication;
 
 import java.io.Serializable;
 
+/**
+ * Configures method-level security using a custom PermissionEvaluator.
+ * This configuration enables @PreAuthorize and @PostAuthorize annotations,
+ * and integrates a RolePermissionEvaluator to handle fine-grained permission checks
+ * based on role-feature mappings.
+ */
+
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
 public class MethodSecurityConfig {

@@ -13,6 +13,19 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * REST controller for managing Customer entities.
+ *
+ * Provides endpoints to:
+ * - Create a new customer ({@link #create})
+ * - Retrieve all customers ({@link #getAll})
+ * - Retrieve a customer by user ID ({@link #getCustomerByUserId})
+ * - Retrieve a customer by ID ({@link #getById})
+ * - Update a customer fully ({@link #update})
+ * - Partially update a customer ({@link #patchCustomer})
+ * - Delete a customer ({@link #delete})
+ */
+
 @RestController
 @RequestMapping("/customers")
 public class CustomerController {
@@ -24,12 +37,6 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
-    /**
-     * Create a new Customer.
-     * Requires 'name' field in request, otherwise returns 400 Bad Request.
-     * @param request CustomerRequest containing customer details
-     * @return Created CustomerResponse
-     */
     @PostMapping
     public ResponseEntity<CustomerResponse> create(@RequestBody CustomerRequest request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
@@ -40,10 +47,7 @@ public class CustomerController {
         return ResponseEntity.ok(createdCustomer);
     }
 
-    /**
-     * Retrieve all customers.
-     * @return List of CustomerResponse
-     */
+
     @GetMapping
     public ResponseEntity<List<CustomerResponse>> getAll() {
         return ResponseEntity.ok(customerService.getAllCustomers());
@@ -60,49 +64,24 @@ public class CustomerController {
         }
     }
 
-
-    /**
-     * Retrieve a specific customer by ID.
-     * @param id UUID of the customer
-     * @return CustomerResponse of requested customer
-     */
     @GetMapping("/{id}")
     public ResponseEntity<CustomerResponse> getById(@PathVariable UUID id) {
         CustomerResponse customer = customerService.getCustomerById(id);
         return ResponseEntity.ok(customer);
     }
 
-    /**
-     * Update an existing customer with full replacement.
-     * Expects all customer fields in request.
-     * @param id UUID of the customer to update
-     * @param request CustomerRequest with updated data
-     * @return Updated CustomerResponse
-     */
     @PutMapping("/{id}")
     public ResponseEntity<Customer> update(@PathVariable UUID id, @RequestBody CustomerRequest request) {
         Customer updatedCustomer = customerService.updateCustomer(id, request);
         return ResponseEntity.ok(updatedCustomer);
     }
 
-    /**
-     * Partially update an existing customer.
-     * Only non-null fields in request will be updated.
-     * @param id UUID of the customer to patch
-     * @param request CustomerRequest with fields to update
-     * @return Patched CustomerResponse
-     */
     @PatchMapping("/{id}")
     public ResponseEntity<CustomerResponse> patchCustomer(@PathVariable UUID id, @RequestBody CustomerRequest request) {
         CustomerResponse patchedCustomer = customerService.patchCustomer(id, request);
         return ResponseEntity.ok(patchedCustomer);
     }
 
-    /**
-     * Delete a customer by ID.
-     * @param id UUID of the customer to delete
-     * @return 204 No Content on success
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         customerService.deleteCustomer(id);

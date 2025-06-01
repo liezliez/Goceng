@@ -16,6 +16,22 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * REST controller for managing Employee entities.
+ *
+ * Provides endpoints to:
+ * - Create a new employee
+ * - Retrieve all employees or a specific employee by ID or user ID
+ * - Update existing employee details
+ * - Delete (soft delete) an employee
+ * - Restore a previously deleted employee
+ *
+ * All endpoints are secured via feature-based permission checks
+ * using {@code @PreAuthorize} and {@code RolePermissionEvaluator}.
+ *
+ * Handles {@link jakarta.persistence.EntityNotFoundException} to return 404 responses.
+ */
+
 @RestController
 @RequestMapping("/api/v1/employees")
 @RequiredArgsConstructor

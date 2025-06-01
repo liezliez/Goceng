@@ -4,7 +4,6 @@ import id.co.bcaf.goceng.dto.*;
 import id.co.bcaf.goceng.enums.AccountStatus;
 import id.co.bcaf.goceng.models.User;
 import id.co.bcaf.goceng.services.UserService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
-@Slf4j
 public class UserController {
 
     @Autowired
@@ -30,6 +28,9 @@ public class UserController {
         this.userService = userService;
     }
 
+    /**
+     * Get the currently authenticated user based on the principal
+     */
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getUserByPrincipal(Principal principal) {
         if (principal == null) {
@@ -42,26 +43,28 @@ public class UserController {
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
+    /**
+     * Register a new user
+     */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody @Valid RegisterRequest request) {
-        log.info("Registering new customer: {}", request.getEmail());
-
         try {
             RegisterResponse registerResponse = userService.registerUser(request);
             return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", registerResponse));
         } catch (DataIntegrityViolationException ex) {
-            log.error("Duplicate entry error: {}", ex.getMessage(), ex);
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, "Registration failed: email or NIK already registered", null));
         } catch (Exception ex) {
-            log.error("Unexpected error during registration: {}", ex.getMessage(), ex);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, "Registration failed due to a server error", null));
         }
     }
 
+    /**
+     * Get all users (requires VIEW_USERS permission)
+     */
     @GetMapping("/list")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
@@ -72,6 +75,9 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Get user by UUID (requires VIEW_USERS permission)
+     */
     @GetMapping("/id/{id}")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
@@ -81,6 +87,9 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Get user by email (requires VIEW_USERS permission)
+     */
     @GetMapping("/email")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<UserResponse> getUserByEmail(@RequestParam String email) {
@@ -90,6 +99,9 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Get users filtered by account status (requires VIEW_USERS permission)
+     */
     @GetMapping("/status/{status}")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<?> getUsersByStatus(@PathVariable String status) {
@@ -101,40 +113,47 @@ public class UserController {
                     .collect(Collectors.toList());
             return ResponseEntity.ok(users);
         } catch (IllegalArgumentException e) {
-            log.error("Invalid account status: {}", status);
             return ResponseEntity.badRequest().body("Invalid account status value.");
         }
     }
 
+    /**
+     * Create a new user (requires MANAGE_USERS permission)
+     */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<UserResponse> createUserFromRequest(@RequestBody @Valid CreateUserRequest request) {
-        log.info("Creating user: {}", request.getEmail());
         User createdUser = userService.createUserFromRequest(request);
         return ResponseEntity.ok(toUserResponse(createdUser));
     }
 
+    /**
+     * Update an existing user by ID (requires MANAGE_USERS permission)
+     */
     @PutMapping("/id/{id}")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @RequestBody @Valid UserRequest request) {
-        log.info("Updating user with ID: {}", id);
         return userService.updateUserFromRequest(id, request)
                 .map(this::toUserResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-
+    /**
+     * Edit an existing user by ID (requires MANAGE_USERS permission)
+     */
     @PutMapping("/id/{id}/edit")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<UserResponse> editUser(@PathVariable UUID id, @RequestBody @Valid UserRequest request) {
-        log.info("Editing user with ID: {}", id);
         return userService.updateUserFromRequest(id, request)
                 .map(this::toUserResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
+    /**
+     * Change password for the authenticated user (requires CHANGE_PASSWORD permission)
+     */
     @PutMapping("/change-password")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('CHANGE_PASSWORD')")
     public ResponseEntity<?> changePassword(
@@ -165,6 +184,9 @@ public class UserController {
         }
     }
 
+    /**
+     * Soft delete a user by ID (requires MANAGE_USERS permission)
+     */
     @PutMapping("/id/{id}/delete")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<String> softDeleteUser(@PathVariable UUID id) {
@@ -174,6 +196,9 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
 
+    /**
+     * Restore a soft-deleted user by ID (requires MANAGE_USERS permission)
+     */
     @PutMapping("/id/{id}/restore")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_USERS')")
     public ResponseEntity<String> restoreUser(@PathVariable UUID id) {
@@ -184,40 +209,43 @@ public class UserController {
                 .body("User is not in DELETED status or does not exist.");
     }
 
+    /**
+     * Count users grouped by their account status (requires VIEW_USERS permission)
+     */
     @GetMapping("/count-by-status")
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_USERS')")
     public ResponseEntity<Map<AccountStatus, Long>> countUsersByStatus() {
         return ResponseEntity.ok(userService.countUsersGroupedByStatus());
     }
 
+    /**
+     * Update the FCM token for the authenticated user
+     */
     @PutMapping("/fcm-token")
     public ResponseEntity<?> updateFcmToken(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody FcmTokenRequest request) {
 
         if (userDetails == null) {
-            System.out.println("updateFcmToken: userDetails is null - unauthorized");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        System.out.println("updateFcmToken: user = " + userDetails.getUsername() + ", token = " + request.getFcmToken());
-
         Optional<User> userOpt = userService.getUserByEmail(userDetails.getUsername());
         if (userOpt.isEmpty()) {
-            System.out.println("updateFcmToken: user not found by email");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         boolean updated = userService.updateFcmToken(userOpt.get().getIdUser(), request.getFcmToken());
         if (updated) {
-            System.out.println("updateFcmToken: FCM token updated successfully");
             return ResponseEntity.ok().build();
         } else {
-            System.out.println("updateFcmToken: failed to update FCM token");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
+    /**
+     * Helper method to convert User entity to UserResponse DTO
+     */
     private UserResponse toUserResponse(User user) {
         UserResponse dto = new UserResponse();
         dto.setId(user.getIdUser());

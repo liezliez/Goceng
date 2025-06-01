@@ -23,24 +23,41 @@ public class VerificationController {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Endpoint to verify a user's email by validating the verification token.
+     *
+     * @param token The verification token sent to user's email.
+     * @return ResponseEntity with status and message indicating success or failure.
+     */
     @GetMapping("/verify-email")
     public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
+        // Find the verification token by its token string
         Optional<VerificationToken> optionalToken = tokenRepository.findByToken(token);
         if (optionalToken.isEmpty()) {
+            // Token not found - return bad request
             return ResponseEntity.badRequest().body("Invalid verification token.");
         }
 
         VerificationToken verificationToken = optionalToken.get();
+
+        // Check if token is expired
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             return ResponseEntity.badRequest().body("Token expired.");
         }
 
+        // Get the user associated with the token
         User user = verificationToken.getUser();
-        user.setAccountStatus(AccountStatus.ACTIVE); // or VERIFIED, if you add a VERIFIED status
+
+        // Set user account status to ACTIVE to indicate verified email
+        user.setAccountStatus(AccountStatus.ACTIVE);
+
+        // Save updated user status in the database
         userRepository.save(user);
 
-        tokenRepository.delete(verificationToken); // Optional: clean up
+        // Delete the token after successful verification (optional cleanup)
+        tokenRepository.delete(verificationToken);
+
+        // Return success response
         return ResponseEntity.ok("Email verified successfully!");
     }
 }
-

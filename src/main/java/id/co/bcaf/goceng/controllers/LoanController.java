@@ -18,6 +18,22 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * REST controller for managing Loan entities and related operations.
+ *
+ * Provides secured endpoints to:
+ * - Create a loan from an approved application ({@link #createLoan})
+ * - Partially update a loan ({@link #updateLoanPartially})
+ * - Retrieve the total loan amount for a customer ({@link #getTotalLoan})
+ * - Retrieve current authenticated user's loans ({@link #getCurrentUserLoans})
+ * - Retrieve loan application history for a customer ({@link #getLoanApplicationHistory})
+ * - Retrieve loan logs by loan ID ({@link #getLoanLogs})
+ * - Search loans by customer, status, and date range ({@link #searchLoans})
+ * - Simulate a loan calculation ({@link #simulateLoan})
+ * - Get total loan amount disbursed ({@link #getTotalLoanDisbursed})
+ *
+ * All endpoints except {@link #getTotalLoanDisbursed} are protected by feature-level permission checks.
+ */
 @RestController
 @RequestMapping("/loans")
 @RequiredArgsConstructor
@@ -30,6 +46,10 @@ public class LoanController {
     private final CustomerService customerService;
     private final LoanApplicationService loanApplicationService;
 
+    /**
+     * Creates a loan from an approved application.
+     * Requires 'CREATE_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('CREATE_LOANS')")
     @PostMapping("/create-from-application/{applicationId}")
     public ResponseEntity<LoanResponse> createLoan(
@@ -47,6 +67,10 @@ public class LoanController {
         return ResponseEntity.ok(loanResponse);
     }
 
+    /**
+     * Partially updates a loan by its ID.
+     * Requires 'MANAGE_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_LOANS')")
     @PatchMapping("/{loanId}")
     public ResponseEntity<LoanResponse> updateLoanPartially(
@@ -57,6 +81,10 @@ public class LoanController {
         return ResponseEntity.ok(updatedLoan);
     }
 
+    /**
+     * Retrieves the total loan amount for a customer.
+     * Requires 'VIEW_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @GetMapping("/customer/{customerId}/total")
     public ResponseEntity<BigDecimal> getTotalLoan(@PathVariable UUID customerId) {
@@ -64,6 +92,10 @@ public class LoanController {
         return ResponseEntity.ok(totalLoan);
     }
 
+    /**
+     * Retrieves the loans for the currently authenticated user.
+     * Requires 'VIEW_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @GetMapping("/current")
     public ResponseEntity<List<LoanResponse>> getCurrentUserLoans() {
@@ -78,6 +110,10 @@ public class LoanController {
         return ResponseEntity.ok(loans);
     }
 
+    /**
+     * Retrieves loan application history for a customer.
+     * Requires 'VIEW_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @GetMapping("/customer/{customerId}/history")
     public ResponseEntity<List<LoanApplicationDTO>> getLoanApplicationHistory(@PathVariable UUID customerId) {
@@ -85,6 +121,10 @@ public class LoanController {
         return ResponseEntity.ok(history);
     }
 
+    /**
+     * Retrieves loan logs by loan ID.
+     * Requires 'VIEW_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @GetMapping("/{loanId}/logs")
     public ResponseEntity<List<LoanLog>> getLoanLogs(@PathVariable UUID loanId) {
@@ -92,6 +132,10 @@ public class LoanController {
         return ResponseEntity.ok(logs);
     }
 
+    /**
+     * Searches loans by optional parameters: customerId, status, date range.
+     * Requires 'VIEW_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @GetMapping("/search")
     public ResponseEntity<List<LoanResponse>> searchLoans(
@@ -104,6 +148,10 @@ public class LoanController {
         return ResponseEntity.ok(loans);
     }
 
+    /**
+     * Simulates a loan based on input parameters.
+     * Requires 'VIEW_LOANS' permission.
+     */
     @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('VIEW_LOANS')")
     @PostMapping("/simulate")
     public ResponseEntity<LoanResponse> simulateLoan(@RequestBody LoanSimulationRequest request) {
@@ -117,6 +165,10 @@ public class LoanController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Retrieves the total loan amount disbursed.
+     * No specific permission required.
+     */
     @GetMapping("/total-disbursed")
     public ResponseEntity<BigDecimal> getTotalLoanDisbursed() {
         BigDecimal total = loanRepository.sumLoanAmount();

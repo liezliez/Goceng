@@ -24,6 +24,26 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * REST controller for handling authentication-related operations.
+ *
+ * Features:
+ * - {@link #login(AuthRequest)}: Authenticates the user and issues a JWT token.
+ * - {@link #testToken(String)}: Validates and decodes a given JWT token.
+ * - {@link #forgotPassword(Map)}: Initiates the password reset process by sending a reset email.
+ * - {@link #resetPassword(Map)}: Completes the password reset using a reset token and new password.
+ * - {@link #logout(HttpServletRequest)}: Logs out the user and blacklists their JWT token.
+ * - {@link #checkAuthorities(UserDetails, HttpServletRequest)}: Displays the user's granted authorities and headers for debugging.
+ *
+ * Utilizes:
+ * - {@link JwtUtil} for JWT creation, parsing, and validation.
+ * - {@link AuthService} for credential authentication and user session logic.
+ * - {@link PasswordResetService} for password recovery flows.
+ * - {@link BlacklistedTokenRepository} for token invalidation (logout).
+ *
+ * All routes are under `/auth`.
+ */
+
 @Slf4j
 @RestController
 @RequestMapping("/auth")

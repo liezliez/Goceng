@@ -8,6 +8,12 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
 
+/**
+ * Initializes Cloudinary for image upload.
+ * This configuration sets up a Cloudinary bean using credentials
+ * defined in the application properties, allowing image uploads
+ * to be managed via the Cloudinary API.
+ */
 @Configuration
 public class CloudinaryConfig {
 

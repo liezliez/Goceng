@@ -6,6 +6,12 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+/**
+ * Logging filter for incoming HTTP requests.
+ * This filter logs the HTTP method and request URI of every incoming request
+ * before passing it along the filter chain.
+ */
+
 @Component
 public class LoggingFilter implements Filter {
 

@@ -10,6 +10,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * REST controller for managing Branch entities.
+ *
+ * Provides secured endpoints to:
+ * - Create a new branch ({@link #createBranch})
+ * - Update an existing branch ({@link #updateBranch})
+ * - Retrieve a branch by ID ({@link #getBranchById})
+ * - Delete a branch ({@link #deleteBranch})
+ * - List all branches ({@link #getAllBranches})
+ *
+ * All methods are protected by a feature-level permission check:
+ * {@code @rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_BRANCHES')}.
+ */
+
+
 @RestController
 @RequestMapping("/branches")
 @PreAuthorize("@rolePermissionEvaluator.hasRoleFeaturePermission('MANAGE_BRANCHES')")

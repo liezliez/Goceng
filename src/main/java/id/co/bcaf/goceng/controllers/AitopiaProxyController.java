@@ -6,6 +6,19 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
+/**
+ * Proxy controller to interact with the Aitopia external API.
+ *
+ * Provides an endpoint to forward POST requests to Aitopia's `/ai/model_settings` endpoint,
+ * acting as a backend proxy to avoid CORS issues and securely include headers like API keys.
+ *
+ * The proxy forwards the request, handles errors gracefully, and returns the remote
+ * response directly to the client.
+ *
+ * Methods:
+ * - {@link #proxyModelSettings()}: Forwards a POST request with an empty JSON body to Aitopia's model settings endpoint.
+ */
+
 @RestController
 @RequestMapping("/api/aitopia")
 public class AitopiaProxyController {

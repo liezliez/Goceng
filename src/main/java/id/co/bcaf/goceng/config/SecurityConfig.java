@@ -21,6 +21,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * Configures Spring Security for the application.
+ *
+ * - Sets up stateless JWT-based authentication.
+ * - Defines public and secured endpoints with fine-grained access control.
+ * - Registers a custom JwtFilter to validate tokens on incoming requests.
+ * - Enables CORS configuration for frontend-backend communication.
+ * - Integrates a custom UserDetailsService for authentication and BCrypt for password encoding.
+ */
+
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
@@ -84,7 +94,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-//        config.setAllowedOrigins(List.of("http://localhost:4200")); // Adjust for deployed frontend
+        // Adjust for deployed frontend
+//        config.setAllowedOrigins(List.of("http://localhost:4200"));
         config.addAllowedOriginPattern("http://localhost:4200");
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

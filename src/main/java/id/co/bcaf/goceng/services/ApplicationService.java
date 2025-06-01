@@ -406,8 +406,6 @@ public class ApplicationService {
         if (app.getStatus() != ApplicationStatus.PENDING_MARKETING) {
             throw new InvalidApplicationStatusException("Application must start at PENDING_MARKETING");
         }
-
-        // Fake current user as system/test admin for audit logs
         User systemUser = getCurrentUser();
 
         // Marketing approval

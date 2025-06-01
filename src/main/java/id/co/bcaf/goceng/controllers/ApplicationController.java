@@ -15,6 +15,26 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * REST controller for managing loan applications.
+ *
+ * Provides endpoints to:
+ * - {@link #create(ApplicationRequest)}: Create new loan applications.
+ * - {@link #approveApplication(UUID, String, ApprovalRequest)}: Approve applications by role (marketing, branch manager, back office).
+ * - {@link #rejectApplication(UUID, ApprovalRole, String)}: Reject applications specifying role and optional note.
+ * - {@link #autoApproveApplication(UUID, String)}: Auto-approve applications with optional note.
+ * - {@link #getAllApplications()}: Retrieve all applications.
+ * - {@link #getApplicationsByCurrentUserBranch()}: Get applications by current user's branch.
+ * - {@link #getApplicationById(UUID)}: Get application by its ID.
+ * - {@link #getApplicationsByCustomer(UUID)}: Get applications by customer ID.
+ * - {@link #getApplicationsByCustomerOrUserId(UUID)}: Get applications by customer or user ID.
+ *
+ * Security:
+ * Uses role-feature-based access control with {@code @PreAuthorize} annotations,
+ * delegating permission checks to {@code RolePermissionEvaluator}.
+ */
+
+
 @RestController
 @RequestMapping("/applications")
 @RequiredArgsConstructor
