@@ -63,40 +63,90 @@ INSERT INTO loan (id,created_at,disbursed_at,installment,interest_rate,loan_amou
 
 -- Insert features
 INSERT INTO features (feature_name) VALUES
+  -- Dashboard
   ('VIEW_DASHBOARD'),
+
+  -- Users
+  ('VIEW_USERS'),
   ('CREATE_USER'),
-  ('APPROVE_APPLICATION'),
   ('MANAGE_USERS'),
+  ('MANAGE_PROFILE'),
+
+  -- Loans
+  ('VIEW_LOANS'),
+  ('CREATE_LOANS'),
+  ('MANAGE_LOANS'),
+
+  -- Applications
+  ('VIEW_APPLICATION'),
+  ('CREATE_APPLICATION'),
+  ('APPROVE_APPLICATION'),
+  ('REJECT_APPLICATION'),
+  ('AUTO_APPROVE_APPLICATION'),
+
+  -- Roles
+  ('MANAGE_ROLES'),
+
+  -- Branches
   ('MANAGE_BRANCHES'),
+
+  -- Features
   ('MANAGE_FEATURES'),
+
+  -- User profile
   ('CHANGE_PASSWORD');
 
 -- Assign features to roles
+
 -- SUPERADMIN gets all features
 INSERT INTO role_features (id_role, id_feature)
 SELECT r.id, f.id FROM roles r CROSS JOIN features f WHERE r.role_name = 'ROLE_SUPERADMIN';
 
+-- CUSTOMER gets selected features
+INSERT INTO role_features (id_role, id_feature)
+SELECT r.id, f.id FROM roles r, features f
+WHERE r.role_name = 'ROLE_CUSTOMER' AND f.feature_name IN (
+  'CREATE_LOANS',
+  'VIEW_LOANS',
+  'MANAGE_PROFILE',
+  'CHANGE_PASSWORD',
+  'MANAGE_USERS',
+  'CREATE_APPLICATION',
+  'VIEW_APPLICATION'
+);
+
 -- MARKETING gets selected features
 INSERT INTO role_features (id_role, id_feature)
-SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_MARKETING' AND f.feature_name IN (
+SELECT r.id, f.id FROM roles r, features f
+WHERE r.role_name = 'ROLE_MARKETING' AND f.feature_name IN (
   'VIEW_DASHBOARD',
+  'VIEW_LOANS',
+  'VIEW_APPLICATION',
   'APPROVE_APPLICATION',
+  'REJECT_APPLICATION',
   'CHANGE_PASSWORD'
 );
 
 -- BRANCH_MANAGER gets selected features
 INSERT INTO role_features (id_role, id_feature)
-SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BRANCH_MANAGER' AND f.feature_name IN (
+SELECT r.id, f.id FROM roles r, features f
+WHERE r.role_name = 'ROLE_BRANCH_MANAGER' AND f.feature_name IN (
   'VIEW_DASHBOARD',
+  'VIEW_LOANS',
+  'VIEW_APPLICATION',
   'APPROVE_APPLICATION',
+  'REJECT_APPLICATION',
   'CHANGE_PASSWORD'
 );
 
 -- BACK_OFFICE gets selected features
 INSERT INTO role_features (id_role, id_feature)
-SELECT r.id, f.id FROM roles r, features f WHERE r.role_name = 'ROLE_BACK_OFFICE' AND f.feature_name IN (
-  'VIEW_USER',
+SELECT r.id, f.id FROM roles r, features f
+WHERE r.role_name = 'ROLE_BACK_OFFICE' AND f.feature_name IN (
   'VIEW_DASHBOARD',
+  'VIEW_LOANS',
+  'VIEW_APPLICATION',
   'APPROVE_APPLICATION',
+  'REJECT_APPLICATION',
   'CHANGE_PASSWORD'
 );
