@@ -4,13 +4,13 @@ import id.co.bcaf.goceng.securities.JwtFilter;
 import id.co.bcaf.goceng.securities.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -21,26 +21,18 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Configures Spring Security for the application.
- *
- * - Sets up stateless JWT-based authentication.
- * - Defines public and secured endpoints with fine-grained access control.
- * - Registers a custom JwtFilter to validate tokens on incoming requests.
- * - Enables CORS configuration for frontend-backend communication.
- * - Integrates a custom UserDetailsService for authentication and BCrypt for password encoding.
- */
-
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final UserDetailsServiceImpl userDetailsService;
+    private final Environment environment;
 
-    public SecurityConfig(JwtFilter jwtFilter, UserDetailsServiceImpl userDetailsService) {
+    public SecurityConfig(JwtFilter jwtFilter, UserDetailsServiceImpl userDetailsService, Environment environment) {
         this.jwtFilter = jwtFilter;
         this.userDetailsService = userDetailsService;
+        this.environment = environment;
     }
 
     @Bean
@@ -50,7 +42,6 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Auth-related and public registration, password reset
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/register",
@@ -61,14 +52,8 @@ public class SecurityConfig {
                                 "/roles",
                                 "/error"
                         ).permitAll()
-
-                        // Authenticated but role-neutral access
                         .requestMatchers("/users/me", "/users/test-access", "/role-features/**").authenticated()
-
-                        // Role-specific access (secured with @PreAuthorize in controller)
                         .requestMatchers("/users/**").authenticated()
-
-                        // Any other request
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -94,9 +79,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Adjust for deployed frontend
-//        config.setAllowedOrigins(List.of("http://localhost:4200"));
-        config.addAllowedOriginPattern("http://localhost:4200");
+
+        // Read allowed origin from application.properties, default to localhost:4200 if missing
+        String allowedOrigin = environment.getProperty("app.cors.allowed-origin", "http://localhost:4200");
+        config.addAllowedOriginPattern(allowedOrigin);
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
