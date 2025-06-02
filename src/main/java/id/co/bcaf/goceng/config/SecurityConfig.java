@@ -84,7 +84,7 @@ public class SecurityConfig {
 //        String allowedOrigin = environment.getProperty("http://localhost:4200");
 //        config.addAllowedOriginPattern(allowedOrigin);
 
-        config.addAllowedOriginPattern("http://localhost:4200");
+        config.addAllowedOriginPattern("https://goceng-frontend.vercel.app/login");
 
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
