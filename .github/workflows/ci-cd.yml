@@ -40,7 +40,7 @@ jobs:
             username: ${{ secrets.VM_USER }}
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             source: "target/*.jar"
-            target: "/home/${{ secrets.VM_USER }}/Goceng-jadi"
+            target: "/home/${{ secrets.VM_USER }}/Goceng-siap"
 
 
       - name: Run Spring Boot on Ubuntu VM with Env Vars
