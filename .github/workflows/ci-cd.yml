@@ -19,20 +19,29 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Make mvnw executable
-        run: chmod +x ./mvnw
+      - name: Give execute permission to mvnw
+        run: chmod +x mvnw
+
+      - name: Create Firebase Admin SDK JSON
+        run: |
+          cat <<EOF > src/main/resources/goceng-app-6e913-firebase-adminsdk-fbsvc-dd705f02ac.json
+          ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          EOF
+
 
       - name: Build Spring Boot App (Maven)
         run: ./mvnw clean package -DskipTests
 
+
       - name: Copy JAR to GCP VM
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "target/*.jar"
-          target: "/home/${{ secrets.VM_USER }}/Goceng-prod"
+            host: ${{ secrets.VM_HOST }}
+            username: ${{ secrets.VM_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            source: "target/*.jar"
+            target: "/home/${{ secrets.VM_USER }}/Goceng-jadi"
+
 
       - name: Run Spring Boot on Ubuntu VM with Env Vars
         uses: appleboy/ssh-action@v0.1.7
@@ -40,14 +49,5 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DB_URL,DB_USER,DB_PASS
           script: |
-            export DB_URL=${{ secrets.DB_URL }}
-            export DB_USER=${{ secrets.DB_USER }}
-            export DB_PASS=${{ secrets.DB_PASS }}
-            
-            pkill -f 'java' || true
-            cd /home/${{ secrets.VM_USER }}/Goceng-prod/target
-            nohup java -jar *.jar --spring.profiles.active=prod > app.log 2>&1 &
-            sleep 10
-            curl --fail http://localhost:8080/actuator/health || (echo "App failed health check" && exit 1)
+            ./start2.sh
