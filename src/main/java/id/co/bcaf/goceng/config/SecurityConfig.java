@@ -81,8 +81,11 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Read allowed origin from application.properties, default to localhost:4200 if missing
-        String allowedOrigin = environment.getProperty("app.cors.allowed-origin", "http://localhost:4200");
-        config.addAllowedOriginPattern(allowedOrigin);
+//        String allowedOrigin = environment.getProperty("http://localhost:4200");
+//        config.addAllowedOriginPattern(allowedOrigin);
+
+        config.addAllowedOriginPattern("http://localhost:4200");
+
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
